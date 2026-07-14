@@ -47,6 +47,17 @@ export default function BuscarPanel({ projetoId, projetoNome }: { projetoId: str
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projeto_id: projetoId, termos: listaTermos, cidades: listaCidades }),
       });
+
+      const contentType = r.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        const texto = await r.text();
+        throw new Error(
+          `O servidor não respondeu em JSON (status ${r.status}). Provavelmente a busca ` +
+            `demorou demais e a função expirou — tente com menos termos/cidades de uma vez. ` +
+            `Detalhe: ${texto.slice(0, 150)}`
+        );
+      }
+
       const d = await r.json();
       if (!d.ok) {
         setTopError(`ERRO: ${d.erro}`);

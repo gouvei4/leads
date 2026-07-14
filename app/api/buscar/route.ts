@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Firestore } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebaseAdmin";
 import { LEADS_COLLECTION, leadDocId } from "@/lib/leads";
 
@@ -70,6 +71,85 @@ async function buscarPlaces(termo: string, cidade: string, apiKey: string): Prom
   return resultados;
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]!);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+interface ComboResultado {
+  logLine: string;
+  erro: string | null;
+  novos: number;
+  duplicados: number;
+}
+
+async function processarCombo(
+  termo: string,
+  cidade: string,
+  apiKey: string,
+  projetoId: string,
+  db: Firestore
+): Promise<ComboResultado> {
+  let resultados: PlaceResultado[] = [];
+  try {
+    resultados = await buscarPlaces(termo, cidade, apiKey);
+  } catch (err) {
+    const msg = (err as Error).message;
+    return {
+      logLine: `ERRO em '${termo}' - ${cidade}: ${msg}`,
+      erro: `${termo} / ${cidade}: ${msg}`,
+      novos: 0,
+      duplicados: 0,
+    };
+  }
+
+  const refs = resultados.map((r) =>
+    db.collection(LEADS_COLLECTION).doc(leadDocId(projetoId, r.nome, r.endereco))
+  );
+  const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
+
+  let novos = 0;
+  let duplicados = 0;
+  const escritas: Promise<unknown>[] = [];
+  snaps.forEach((snap, idx) => {
+    if (!snap.exists) {
+      escritas.push(
+        snap.ref.set({
+          ...resultados[idx],
+          projeto_id: projetoId,
+          status: "Novo",
+          ultimo_contato: "",
+          observacoes: "",
+          criado_em: new Date().toISOString(),
+        })
+      );
+      novos++;
+    } else {
+      duplicados++;
+    }
+  });
+  await Promise.all(escritas);
+
+  return {
+    logLine: `'${termo}' em ${cidade}: ${resultados.length} encontrados, ${novos} novos`,
+    erro: null,
+    novos,
+    duplicados,
+  };
+}
+
 export async function POST(request: NextRequest) {
   const apiKey = process.env.GOOGLE_PLACES_KEY;
   if (!apiKey) {
@@ -92,55 +172,22 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
+  const combos = cidades.flatMap((cidade) => termos.map((termo) => ({ cidade, termo })));
+
+  const CONCURRENCY = 4;
+  const resultadosCombos = await mapWithConcurrency(combos, CONCURRENCY, ({ termo, cidade }) =>
+    processarCombo(termo, cidade, apiKey, projetoId, db)
+  );
+
   let novos = 0;
   let duplicados = 0;
   const erros: string[] = [];
   const log: string[] = [];
-
-  const combos = cidades.flatMap((cidade) => termos.map((termo) => ({ cidade, termo })));
-
-  for (let i = 0; i < combos.length; i++) {
-    const { cidade, termo } = combos[i]!;
-    let resultados: PlaceResultado[] = [];
-    try {
-      resultados = await buscarPlaces(termo, cidade, apiKey);
-    } catch (err) {
-      const msg = (err as Error).message;
-      erros.push(`${termo} / ${cidade}: ${msg}`);
-      log.push(`ERRO em '${termo}' - ${cidade}: ${msg}`);
-      continue;
-    }
-
-    const refs = resultados.map((r) =>
-      db.collection(LEADS_COLLECTION).doc(leadDocId(projetoId, r.nome, r.endereco))
-    );
-    const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
-
-    let adicionadosNestaBusca = 0;
-    const escritas: Promise<unknown>[] = [];
-    snaps.forEach((snap, idx) => {
-      if (!snap.exists) {
-        escritas.push(
-          snap.ref.set({
-            ...resultados[idx],
-            projeto_id: projetoId,
-            status: "Novo",
-            ultimo_contato: "",
-            observacoes: "",
-            criado_em: new Date().toISOString(),
-          })
-        );
-        novos++;
-        adicionadosNestaBusca++;
-      } else {
-        duplicados++;
-      }
-    });
-    await Promise.all(escritas);
-
-    log.push(`'${termo}' em ${cidade}: ${resultados.length} encontrados, ${adicionadosNestaBusca} novos`);
-
-    if (i < combos.length - 1) await sleep(1000);
+  for (const r of resultadosCombos) {
+    novos += r.novos;
+    duplicados += r.duplicados;
+    if (r.erro) erros.push(r.erro);
+    log.push(r.logLine);
   }
 
   return NextResponse.json({ ok: true, novos, duplicados, erros, log });
