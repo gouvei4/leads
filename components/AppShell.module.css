@@ -1,0 +1,25 @@
+.main {
+  padding: var(--space-7);
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.panel {
+  display: none;
+}
+
+.panelActive {
+  display: block;
+  animation: fade 0.18s ease;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
