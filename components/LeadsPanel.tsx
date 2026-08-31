@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./LeadsPanel.module.css";
 import StatsRow from "./StatsRow";
 import LeadsToolbar from "./LeadsToolbar";
@@ -25,20 +25,31 @@ export default function LeadsPanel({ active, projetoId }: { active: boolean; pro
   const [filtroTermo, setFiltroTermo] = useState("");
   const [filtroBusca, setFiltroBusca] = useState("");
 
-  const carregarStats = useCallback(async () => {
-    const r = await fetch("/api/stats?" + new URLSearchParams({ projeto: projetoId }));
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.erro || "Erro ao carregar estatísticas");
-    setStats(d);
+  // Mantém o projetoId "atual" acessível de dentro de requisições em andamento,
+  // pra descartar respostas de um projeto que já não é mais o selecionado
+  // (ex: troca rápida de projeto ou a corrida entre o fetch inicial sem
+  // projeto e o fetch do projeto recém-criado/selecionado).
+  const projetoIdRef = useRef(projetoId);
+  useEffect(() => {
+    projetoIdRef.current = projetoId;
   }, [projetoId]);
 
+  const carregarStats = useCallback(async (projetoIdAlvo: string) => {
+    const r = await fetch("/api/stats?" + new URLSearchParams({ projeto: projetoIdAlvo }));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || "Erro ao carregar estatísticas");
+    if (projetoIdRef.current === projetoIdAlvo) setStats(d);
+  }, []);
+
   const carregarLeads = useCallback(async () => {
+    if (!projetoId) return;
+    const projetoIdAlvo = projetoId;
     setErro(null);
     try {
-      await carregarStats();
+      await carregarStats(projetoIdAlvo);
 
       const params = new URLSearchParams({
-        projeto: projetoId,
+        projeto: projetoIdAlvo,
         cidade: filtroCidade,
         status: filtroStatus,
         termo: filtroTermo,
@@ -47,6 +58,7 @@ export default function LeadsPanel({ active, projetoId }: { active: boolean; pro
       const r = await fetch("/api/leads?" + params.toString());
       const d = await r.json();
       if (!r.ok) throw new Error(d.erro || "Erro ao carregar leads");
+      if (projetoIdRef.current !== projetoIdAlvo) return;
 
       setCidades(d.cidades);
       setTermos(d.termos);
@@ -54,13 +66,25 @@ export default function LeadsPanel({ active, projetoId }: { active: boolean; pro
       setLeads(d.leads);
       setPaginaAtual(1);
     } catch (e) {
-      setErro((e as Error).message);
+      if (projetoIdRef.current === projetoIdAlvo) setErro((e as Error).message);
     }
   }, [carregarStats, projetoId, filtroCidade, filtroStatus, filtroTermo, filtroBusca]);
 
   useEffect(() => {
+    if (!active) return;
+    if (!projetoId) {
+      /* eslint-disable react-hooks/set-state-in-effect -- limpa a tela ao ficar sem projeto selecionado */
+      setLeads([]);
+      setStats(null);
+      setCidades([]);
+      setTermos([]);
+      setStatusOptions([]);
+      setPaginaAtual(1);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      return;
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- busca dados ao ativar a aba ou trocar de projeto
-    if (active) carregarLeads();
+    carregarLeads();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, projetoId]);
 
@@ -71,7 +95,7 @@ export default function LeadsPanel({ active, projetoId }: { active: boolean; pro
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [campo]: valor }),
     });
-    carregarStats();
+    if (projetoId) carregarStats(projetoId);
   }
 
   async function excluirLead(id: string) {

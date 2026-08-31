@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import styles from "./AppShell.module.css";
 import Header from "./Header";
 import ProjectSwitcher from "./ProjectSwitcher";
-import LeadsPanel from "./LeadsPanel";
+import ProspeccaoShell from "./prospeccao/ProspeccaoShell";
+import TemplatesView from "./prospeccao/TemplatesView";
+import BlacklistView from "./prospeccao/BlacklistView";
 import BuscarPanel from "./BuscarPanel";
 import ConfigPanel from "./ConfigPanel";
 import type { Projeto } from "@/lib/types";
 
-export type TabId = "leads" | "buscar" | "config";
+export type TabId = "leads" | "buscar" | "templates" | "blacklist" | "config";
 
 const PROJETO_STORAGE_KEY = "prospector:projetoId";
 
@@ -78,12 +80,19 @@ export default function AppShell() {
         onRenomear={renomearProjeto}
         onExcluir={excluirProjeto}
       />
-      <main className={styles.main}>
-        <section className={`${styles.panel} ${activeTab === "leads" ? styles.panelActive : ""}`}>
-          <LeadsPanel active={activeTab === "leads"} projetoId={projetoId} />
-        </section>
+      <div className={`${styles.leadsPanel} ${activeTab === "leads" ? styles.leadsPanelActive : ""}`}>
+        <ProspeccaoShell projetoId={projetoId} />
+      </div>
+
+      <main className={`${styles.main} ${activeTab !== "leads" ? styles.mainActive : ""}`}>
         <section className={`${styles.panel} ${activeTab === "buscar" ? styles.panelActive : ""}`}>
           <BuscarPanel projetoId={projetoId} projetoNome={projetos.find((p) => p.id === projetoId)?.nome ?? ""} />
+        </section>
+        <section className={`${styles.panel} ${activeTab === "templates" ? styles.panelActive : ""}`}>
+          <TemplatesView />
+        </section>
+        <section className={`${styles.panel} ${activeTab === "blacklist" ? styles.panelActive : ""}`}>
+          <BlacklistView />
         </section>
         <section className={`${styles.panel} ${activeTab === "config" ? styles.panelActive : ""}`}>
           <ConfigPanel active={activeTab === "config"} />

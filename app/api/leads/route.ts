@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
     const termo = searchParams.get("termo")?.trim() ?? "";
     const busca = searchParams.get("q")?.trim().toLowerCase() ?? "";
 
-    const doProjeto = await getLeads(db, projeto || undefined);
+    if (!projeto) {
+      return NextResponse.json({ leads: [], cidades: [], termos: [], status_options: STATUS_OPTIONS });
+    }
+
+    const doProjeto = await getLeads(db, projeto);
 
     const leads = doProjeto.filter((l) => {
       if (cidade && l.cidade !== cidade) return false;

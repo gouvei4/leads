@@ -6,7 +6,11 @@ export async function GET(request: NextRequest) {
   try {
     const db = getDb();
     const projeto = new URL(request.url).searchParams.get("projeto")?.trim() ?? "";
-    const stats = await getStats(db, projeto || undefined);
+    if (!projeto) {
+      const por_status: Record<string, number> = {};
+      return NextResponse.json({ total: 0, por_status });
+    }
+    const stats = await getStats(db, projeto);
     return NextResponse.json(stats);
   } catch (err) {
     return NextResponse.json({ erro: (err as Error).message }, { status: 500 });

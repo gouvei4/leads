@@ -1,0 +1,38 @@
+.toggle {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.moon {
+  display: none;
+}
+
+:global([data-theme="light"]) .sun {
+  display: none;
+}
+
+:global([data-theme="light"]) .moon {
+  display: block;
+}

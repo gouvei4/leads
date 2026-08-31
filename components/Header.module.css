@@ -10,6 +10,7 @@
   top: 0;
   z-index: 10;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .brand {
@@ -24,11 +25,11 @@
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
   border: 1px solid var(--border-strong);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
 }
 
 .brandMark svg {
@@ -38,7 +39,7 @@
 
 .brandText h1 {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
 }
@@ -47,6 +48,12 @@
   color: var(--text-dim);
   font-size: 12px;
   margin-top: 2px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
 }
 
 .nav {

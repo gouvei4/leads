@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Firestore } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebaseAdmin";
 import { LEADS_COLLECTION, leadDocId } from "@/lib/leads";
+import { mapWithConcurrency } from "@/lib/concurrency";
+import { extrairComponenteEndereco } from "@/lib/places";
+import { getTemplates } from "@/lib/templates";
+import { getPerfil } from "@/lib/perfil";
+import { gerarMensagemParaLead } from "@/lib/mensagemTemplate";
+import { getTelefonesBloqueados } from "@/lib/blacklist";
+import { normalizarTelefoneBr } from "@/lib/whatsapp";
+import type { MessageTemplate } from "@/lib/types";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -15,6 +23,7 @@ const FIELD_MASK = [
   "places.websiteUri",
   "places.googleMapsUri",
   "places.businessStatus",
+  "places.addressComponents",
   "nextPageToken",
 ].join(",");
 
@@ -25,6 +34,7 @@ interface PlaceResultado {
   site: string;
   link_maps: string;
   cidade: string;
+  bairro: string;
   termo_busca: string;
 }
 
@@ -58,6 +68,11 @@ async function buscarPlaces(termo: string, cidade: string, apiKey: string): Prom
         site: place.websiteUri ?? "",
         link_maps: place.googleMapsUri ?? "",
         cidade,
+        bairro: extrairComponenteEndereco(place.addressComponents, [
+          "sublocality_level_1",
+          "sublocality",
+          "neighborhood",
+        ]),
         termo_busca: termo,
       });
     }
@@ -69,23 +84,6 @@ async function buscarPlaces(termo: string, cidade: string, apiKey: string): Prom
   }
 
   return resultados;
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      results[i] = await fn(items[i]!);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-  return results;
 }
 
 interface ComboResultado {
@@ -100,11 +98,18 @@ async function processarCombo(
   cidade: string,
   apiKey: string,
   projetoId: string,
-  db: Firestore
+  db: Firestore,
+  templates: MessageTemplate[],
+  perfil: { meu_nome: string; meu_link: string },
+  telefonesBloqueados: Set<string>
 ): Promise<ComboResultado> {
   let resultados: PlaceResultado[] = [];
   try {
     resultados = await buscarPlaces(termo, cidade, apiKey);
+    resultados = resultados.filter((r) => {
+      const tel = normalizarTelefoneBr(r.telefone);
+      return !(tel != null && telefonesBloqueados.has(tel));
+    });
   } catch (err) {
     const msg = (err as Error).message;
     return {
@@ -125,14 +130,20 @@ async function processarCombo(
   const escritas: Promise<unknown>[] = [];
   snaps.forEach((snap, idx) => {
     if (!snap.exists) {
+      const r = resultados[idx]!;
+      const mensagem = gerarMensagemParaLead(r, templates, perfil);
       escritas.push(
         snap.ref.set({
-          ...resultados[idx],
+          ...r,
           projeto_id: projetoId,
           status: "Novo",
           ultimo_contato: "",
           observacoes: "",
           criado_em: new Date().toISOString(),
+          mensagem_gerada: mensagem.texto,
+          mensagem_template_id: mensagem.templateId,
+          mensagem_variacao_idx: mensagem.variacaoIdx,
+          historico: [{ tipo: "criacao", data: new Date().toISOString() }],
         })
       );
       novos++;
@@ -172,11 +183,16 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
+  const [templates, perfil, telefonesBloqueados] = await Promise.all([
+    getTemplates(db),
+    getPerfil(db),
+    getTelefonesBloqueados(db),
+  ]);
   const combos = cidades.flatMap((cidade) => termos.map((termo) => ({ cidade, termo })));
 
   const CONCURRENCY = 4;
   const resultadosCombos = await mapWithConcurrency(combos, CONCURRENCY, ({ termo, cidade }) =>
-    processarCombo(termo, cidade, apiKey, projetoId, db)
+    processarCombo(termo, cidade, apiKey, projetoId, db, templates, perfil, telefonesBloqueados)
   );
 
   let novos = 0;

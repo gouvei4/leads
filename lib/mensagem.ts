@@ -1,14 +1,18 @@
-const MENSAGEM_TEMPLATE = `Oi, tudo bem? Falo com o responsável pela __EMPRESA__?
+const MENSAGEM_SEM_SITE = `Oi, tudo bem? Falo com o responsável pela __EMPRESA__?
 
-Me chamo Afonso, da MS Manutenções. Atendemos quem trabalha com caçamba e roll on/polli em tudo:
+Passei pelo Google e vi que vocês ainda não têm um site — hoje isso custa cliente pra concorrência que aparece primeiro na busca.
 
-✅ Reforma de caçamba (solda, chapa, pintura)
-✅ Manutenção de equipamento roll on/polli
-✅ Venda de equipamento (novo e usado)
-✅ Venda de caçamba (nova e usada)
+Eu crio sites profissionais, rápidos e prontos pra celular, com prazo curto e preço justo pra quem tá começando essa etapa.
 
-Como tá a frota de vocês hoje — tem algo precisando de reparo ou pensando em ampliar?`;
+Faz sentido eu te mandar alguns exemplos?`;
 
-export function montarMensagem(nomeEmpresa: string): string {
-  return MENSAGEM_TEMPLATE.replace("__EMPRESA__", nomeEmpresa);
+const MENSAGEM_SITE_FRACO = `Oi, tudo bem? Falo com o responsável pela __EMPRESA__?
+
+Dei uma olhada no site de vocês e acho que dá pra melhorar bastante — hoje ele pode estar afastando cliente em vez de trazer.
+
+Eu crio sites profissionais, rápidos e prontos pra celular. Faz sentido eu te mandar alguns exemplos do que consigo fazer?`;
+
+export function montarMensagem(nomeEmpresa: string, siteFraco = false): string {
+  const template = siteFraco ? MENSAGEM_SITE_FRACO : MENSAGEM_SEM_SITE;
+  return template.replace("__EMPRESA__", nomeEmpresa);
 }

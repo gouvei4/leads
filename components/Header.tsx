@@ -2,11 +2,14 @@
 
 import styles from "./Header.module.css";
 import { BrandMarkIcon } from "./icons";
+import ThemeToggle from "./ThemeToggle";
 import type { TabId } from "./AppShell";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "leads", label: "Leads" },
   { id: "buscar", label: "Buscar" },
+  { id: "templates", label: "Templates" },
+  { id: "blacklist", label: "Blacklist" },
   { id: "config", label: "Configurações" },
 ];
 
@@ -28,18 +31,21 @@ export default function Header({
           <div className={styles.subtitle}>Busca, salva e organiza empresas para prospecção</div>
         </div>
       </div>
-      <nav className={styles.nav}>
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`${styles.tabBtn} ${activeTab === tab.id ? styles.tabBtnActive : ""}`}
-            onClick={() => onChangeTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <div className={styles.right}>
+        <nav className={styles.nav}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`${styles.tabBtn} ${activeTab === tab.id ? styles.tabBtnActive : ""}`}
+              onClick={() => onChangeTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+        <ThemeToggle />
+      </div>
     </header>
   );
 }

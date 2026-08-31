@@ -5,6 +5,7 @@
   padding: var(--space-3) var(--space-7);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .label {

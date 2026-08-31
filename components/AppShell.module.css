@@ -1,7 +1,26 @@
 .main {
+  display: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--space-7);
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
+}
+
+.mainActive {
+  display: block;
+}
+
+.leadsPanel {
+  display: none;
+}
+
+.leadsPanelActive {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .panel {
