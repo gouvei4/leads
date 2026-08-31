@@ -107,15 +107,19 @@ export async function searchByRadius(
   apiKey: string
 ): Promise<PlaceRadiusResultado[]> {
   const resultados: PlaceRadiusResultado[] = [];
-  const raio = Math.min(Math.max(raioMetros, 100), 50000);
+  // Raio real do filtro de distância — aceita até 500km.
+  const raio = Math.min(Math.max(raioMetros, 100), 500000);
   // Places (New) Text Search só aceita "circle" em locationBias (preferência de
-  // ranking), não em locationRestriction (que só aceita rectangle). Por isso o
-  // raio é aplicado de verdade abaixo, filtrando por distância real do centro.
+  // ranking), não em locationRestriction (que só aceita rectangle). Além disso,
+  // o circle.radius do locationBias vai só até 50km — acima disso a API rejeita.
+  // Por isso o bias fica limitado a 50km e o raio real é aplicado abaixo,
+  // filtrando por distância real do centro.
+  const raioBias = Math.min(raio, 50000);
   const body: Record<string, unknown> = {
     textQuery: nicho,
     languageCode: "pt-BR",
     locationBias: {
-      circle: { center: { latitude: center.lat, longitude: center.lng }, radius: raio },
+      circle: { center: { latitude: center.lat, longitude: center.lng }, radius: raioBias },
     },
   };
   const headers = {

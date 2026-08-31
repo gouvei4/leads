@@ -211,7 +211,7 @@ export default function Sidebar({
             id="raio"
             type="range"
             min={1}
-            max={50}
+            max={500}
             step={1}
             value={raioKm}
             onChange={(e) => onRaioKmChange(Number(e.target.value))}

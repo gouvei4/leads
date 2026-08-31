@@ -1,4 +1,4 @@
-import { montarMensagem } from "./mensagem";
+import { mensagensFallbackPara } from "./mensagem";
 import type { MessageTemplate } from "./types";
 
 export interface DadosMensagem {
@@ -112,16 +112,14 @@ export function gerarMensagemParaLead(
   templates: MessageTemplate[],
   perfil: { meu_nome: string; meu_link: string }
 ): MensagemGerada {
+  const dados = dadosDoLead(lead, perfil.meu_nome, perfil.meu_link);
   const template = escolherTemplatePadrao(templates, lead.termo_busca ?? "");
   if (!template || template.variacoes.length === 0) {
-    return {
-      texto: montarMensagem(lead.nome, lead.site_qualidade === "fraca"),
-      templateId: null,
-      variacaoIdx: null,
-    };
+    const fallback = mensagensFallbackPara(lead.site_qualidade);
+    const fidx = escolherVariacaoIdx(fallback.length);
+    return { texto: renderizarTemplate(fallback[fidx]!, dados), templateId: null, variacaoIdx: fidx };
   }
   const idx = escolherVariacaoIdx(template.variacoes.length);
-  const dados = dadosDoLead(lead, perfil.meu_nome, perfil.meu_link);
   return { texto: renderizarTemplate(template.variacoes[idx]!, dados), templateId: template.id, variacaoIdx: idx };
 }
 
@@ -144,16 +142,14 @@ export function regenerarMensagem(
   templates: MessageTemplate[],
   perfil: { meu_nome: string; meu_link: string }
 ): MensagemGerada {
+  const dados = dadosDoLead(lead, perfil.meu_nome, perfil.meu_link);
   const template =
     templates.find((t) => t.id === lead.mensagem_template_id) ?? escolherTemplatePadrao(templates, lead.termo_busca ?? "");
   if (!template || template.variacoes.length === 0) {
-    return {
-      texto: montarMensagem(lead.nome, lead.site_qualidade === "fraca"),
-      templateId: null,
-      variacaoIdx: null,
-    };
+    const fallback = mensagensFallbackPara(lead.site_qualidade);
+    const fidx = escolherVariacaoIdx(fallback.length, lead.mensagem_variacao_idx);
+    return { texto: renderizarTemplate(fallback[fidx]!, dados), templateId: null, variacaoIdx: fidx };
   }
   const idx = escolherVariacaoIdx(template.variacoes.length, lead.mensagem_variacao_idx);
-  const dados = dadosDoLead(lead, perfil.meu_nome, perfil.meu_link);
   return { texto: renderizarTemplate(template.variacoes[idx]!, dados), templateId: template.id, variacaoIdx: idx };
 }

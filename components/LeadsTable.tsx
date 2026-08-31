@@ -19,7 +19,7 @@ export default function LeadsTable({ leads, statusOptions, onUpdateLead, onDelet
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   async function copiarMensagem(lead: Lead) {
-    const texto = montarMensagem(lead.nome);
+    const texto = montarMensagem(lead.nome, lead.site_qualidade);
     try {
       await navigator.clipboard.writeText(texto);
     } catch {

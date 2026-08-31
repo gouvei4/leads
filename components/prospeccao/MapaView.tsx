@@ -39,7 +39,7 @@ function useTema(): "dark" | "light" {
 
 function zoomParaRaio(raioMetros: number): number {
   const raioKm = Math.max(1, raioMetros / 1000);
-  return Math.round(Math.max(9, Math.min(15, 14 - Math.log2(raioKm))));
+  return Math.round(Math.max(5, Math.min(15, 14 - Math.log2(raioKm))));
 }
 
 function iconeLead(cor: string, selecionado: boolean): L.DivIcon {
