@@ -24,7 +24,7 @@ function KanbanCardConteudo({ lead }: { lead: Lead }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
           <div className="truncate text-xs font-semibold text-ink">{lead.nome || "Sem nome"}</div>
-          {followUpVencido(lead) && <ClockIcon className="h-3 w-3 shrink-0 text-status-negociando" />}
+          {followUpVencido(lead) && <ClockIcon className="h-3 w-3 shrink-0 text-warning" />}
         </div>
         <div className="truncate text-[11px] text-ink-muted">{lead.cidade || lead.endereco}</div>
       </div>
@@ -46,7 +46,7 @@ function KanbanCard({ lead, onSelecionarLead }: { lead: Lead; onSelecionarLead: 
       tabIndex={0}
       aria-label={`${lead.nome}, status ${lead.status}. Use as setas pra mover entre colunas.`}
       className={`cursor-grab rounded-control border p-2.5 text-left shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:cursor-grabbing ${
-        vencido ? "border-status-negociando/60 bg-status-negociando/5" : "border-line bg-surface"
+        vencido ? "border-warning/50 bg-warning/5" : "border-line bg-surface"
       } ${isDragging ? "opacity-30" : "hover:shadow-md"}`}
     >
       <KanbanCardConteudo lead={lead} />

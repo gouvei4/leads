@@ -23,6 +23,31 @@ const DOMINIOS_EMAIL_IGNORADOS = ["sentry.io", "example.com", "wixpress.com", "g
 
 const TIMEOUT_MS = 5000;
 const LIMITE_LENTO_MS = 3000;
+const TAMANHO_MAX_BYTES = 2_000_000; // não baixa "site" gigante
+
+/**
+ * Barreira anti-SSRF: o servidor vai buscar uma URL que veio do Google Places,
+ * mas ainda assim recusa http(s) fora do padrão, localhost, IPs privados e o
+ * endpoint de metadados de nuvem. Não resolve DNS (um domínio público pode
+ * apontar pra IP interno), mas cobre os casos óbvios.
+ */
+export function urlSegura(bruta: string): URL | null {
+  let u: URL;
+  try {
+    u = new URL(bruta);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
+    return null;
+  }
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(host)) return null;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return null;
+  if (host === "[::1]" || host.startsWith("[fd") || host.startsWith("[fe80")) return null;
+  return u;
+}
 
 async function fetchComTimeout(url: string, ms: number): Promise<Response> {
   const controller = new AbortController();
@@ -64,8 +89,12 @@ function extrairEmail(html: string, textoVisivel: string): string | null {
  */
 export async function checarSite(url: string): Promise<ResultadoEnriquecimento> {
   const inicio = Date.now();
+  const alvo = urlSegura(url);
+  if (!alvo) {
+    return { qualidade: "fraca", instagram: null, email: null, https: false, responsivo: false, tempoMs: null };
+  }
   try {
-    const resp = await fetchComTimeout(url, TIMEOUT_MS);
+    const resp = await fetchComTimeout(alvo.toString(), TIMEOUT_MS);
     const tempoMs = Date.now() - inicio;
     const https = new URL(resp.url).protocol === "https:";
 
@@ -83,7 +112,11 @@ export async function checarSite(url: string): Promise<ResultadoEnriquecimento> 
       };
     }
 
-    const html = await resp.text();
+    const tamanho = Number(resp.headers.get("content-length") ?? 0);
+    if (tamanho > TAMANHO_MAX_BYTES) {
+      return { qualidade: "fraca", instagram: null, email: null, https, responsivo: false, tempoMs };
+    }
+    const html = (await resp.text()).slice(0, TAMANHO_MAX_BYTES);
     const textoVisivel = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const responsivo = /<meta[^>]+name=["']viewport["']/i.test(html);
     const paginaVazia = textoVisivel.length < 200;

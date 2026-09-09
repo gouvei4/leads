@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
 import { PROJETOS_COLLECTION } from "@/lib/projetos";
 import { LEADS_COLLECTION } from "@/lib/leads";
+import { commitEmLotes } from "@/lib/firestoreBatch";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -25,11 +26,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   try {
     const db = getDb();
 
-    // desvincula os leads desse projeto (nao apaga os leads, so tira a associacao)
+    // desvincula os leads desse projeto (nao apaga os leads, so tira a
+    // associacao) — em lotes de 450 pra nao estourar o limite do batch
     const leadsDoProjeto = await db.collection(LEADS_COLLECTION).where("projeto_id", "==", id).get();
-    const batch = db.batch();
-    leadsDoProjeto.docs.forEach((doc) => batch.update(doc.ref, { projeto_id: "" }));
-    await batch.commit();
+    await commitEmLotes(
+      db,
+      leadsDoProjeto.docs.map((doc) => ({ ref: doc.ref, data: { projeto_id: "" }, merge: true }))
+    );
 
     await db.collection(PROJETOS_COLLECTION).doc(id).delete();
     return NextResponse.json({ ok: true, leadsDesvinculados: leadsDoProjeto.size });

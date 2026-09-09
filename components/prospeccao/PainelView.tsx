@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { STATUS_OPTIONS, STATUS_COLORS, type Lead, type MessageTemplate } from "@/lib/types";
+import { useMemo } from "react";
+import { STATUS_OPTIONS, STATUS_COLORS, type Lead } from "@/lib/types";
 import { calcularScore, faixaScore, type FaixaScore } from "@/lib/score";
+import { useMensagemContext } from "./MensagemContext";
 import {
   calcularFunil,
   calcularResumo,
@@ -58,14 +59,7 @@ function ListaDesempenho({ titulo, grupos }: { titulo: string; grupos: Desempenh
 }
 
 export default function PainelView({ leads }: { leads: Lead[] }) {
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
-
-  useEffect(() => {
-    fetch("/api/templates")
-      .then((r) => r.json())
-      .then((d) => setTemplates(d.templates ?? []))
-      .catch(() => {});
-  }, []);
+  const { templates } = useMensagemContext();
 
   const porStatus = useMemo(() => {
     const contagem: Record<string, number> = {};
@@ -113,8 +107,8 @@ export default function PainelView({ leads }: { leads: Lead[] }) {
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total de leads" valor={total} />
         <StatCard label="Pipeline ativo" valor={resumo.ativos} />
-        <StatCard label="Follow-ups pendentes" valor={resumo.followUpsPendentes} cor="var(--color-status-negociando)" />
-        <StatCard label="Clientes no mês" valor={resumo.clientesNoMes} cor="var(--color-status-cliente)" />
+        <StatCard label="Follow-ups pendentes" valor={resumo.followUpsPendentes} cor="var(--color-warning)" />
+        <StatCard label="Clientes no mês" valor={resumo.clientesNoMes} cor={STATUS_COLORS.Cliente} />
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">

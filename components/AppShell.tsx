@@ -1,103 +1,116 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import styles from "./AppShell.module.css";
-import Header from "./Header";
-import ProjectSwitcher from "./ProjectSwitcher";
+import { ProjetoProvider } from "./prospeccao/ProjetoContext";
+import { MensagemProvider } from "./prospeccao/MensagemContext";
+import { ToastProvider } from "./prospeccao/Toast";
 import ProspeccaoShell from "./prospeccao/ProspeccaoShell";
 import TemplatesView from "./prospeccao/TemplatesView";
 import BlacklistView from "./prospeccao/BlacklistView";
-import BuscarPanel from "./BuscarPanel";
-import ConfigPanel from "./ConfigPanel";
-import type { Projeto } from "@/lib/types";
+import ConfigView from "./prospeccao/ConfigView";
+import ThemeToggle from "./ThemeToggle";
+import {
+  BrandMarkIcon,
+  TargetIcon,
+  MessageSquareIcon,
+  ShieldOffIcon,
+  SettingsIcon,
+  KeyboardIcon,
+} from "./icons";
 
-export type TabId = "leads" | "buscar" | "templates" | "blacklist" | "config";
+type Secao = "prospeccao" | "templates" | "blacklist" | "config";
 
-const PROJETO_STORAGE_KEY = "prospector:projetoId";
+const NAV: { id: Secao; label: string; Icon: typeof TargetIcon }[] = [
+  { id: "prospeccao", label: "Prospecção", Icon: TargetIcon },
+  { id: "templates", label: "Templates", Icon: MessageSquareIcon },
+  { id: "blacklist", label: "Blacklist", Icon: ShieldOffIcon },
+];
 
 export default function AppShell() {
-  const [activeTab, setActiveTab] = useState<TabId>("leads");
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [projetoId, setProjetoId] = useState("");
-  const [carregandoProjetos, setCarregandoProjetos] = useState(true);
+  const [secao, setSecao] = useState<Secao>("prospeccao");
 
+  // ProspeccaoShell fica sempre montado (preserva leads carregados e o mapa).
+  // Ao voltar pra ele, o container do Leaflet precisa remedir — o mapa escuta
+  // o resize do window.
   useEffect(() => {
-    fetch("/api/projetos")
-      .then((r) => r.json())
-      .then((d) => {
-        const lista: Projeto[] = d.projetos ?? [];
-        setProjetos(lista);
-        const salvo = typeof window !== "undefined" ? localStorage.getItem(PROJETO_STORAGE_KEY) : null;
-        const valido = lista.find((p) => p.id === salvo);
-        setProjetoId(valido ? valido.id : (lista[0]?.id ?? ""));
-      })
-      .finally(() => setCarregandoProjetos(false));
-  }, []);
-
-  function selecionarProjeto(id: string) {
-    setProjetoId(id);
-    localStorage.setItem(PROJETO_STORAGE_KEY, id);
-  }
-
-  async function criarProjeto(nome: string) {
-    const r = await fetch("/api/projetos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome }),
-    });
-    const novo = await r.json();
-    setProjetos((prev) => [...prev, novo].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")));
-    selecionarProjeto(novo.id);
-  }
-
-  async function renomearProjeto(id: string, nome: string) {
-    await fetch(`/api/projetos/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome }),
-    });
-    setProjetos((prev) => prev.map((p) => (p.id === id ? { ...p, nome } : p)));
-  }
-
-  async function excluirProjeto(id: string) {
-    await fetch(`/api/projetos/${id}`, { method: "DELETE" });
-    setProjetos((prev) => {
-      const restantes = prev.filter((p) => p.id !== id);
-      if (projetoId === id) selecionarProjeto(restantes[0]?.id ?? "");
-      return restantes;
-    });
-  }
+    if (secao === "prospeccao") {
+      const t = setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+      return () => clearTimeout(t);
+    }
+  }, [secao]);
 
   return (
-    <>
-      <Header activeTab={activeTab} onChangeTab={setActiveTab} />
-      <ProjectSwitcher
-        projetos={projetos}
-        projetoId={projetoId}
-        carregando={carregandoProjetos}
-        onSelecionar={selecionarProjeto}
-        onCriar={criarProjeto}
-        onRenomear={renomearProjeto}
-        onExcluir={excluirProjeto}
-      />
-      <div className={`${styles.leadsPanel} ${activeTab === "leads" ? styles.leadsPanelActive : ""}`}>
-        <ProspeccaoShell projetoId={projetoId} />
-      </div>
+    <ProjetoProvider>
+      <MensagemProvider>
+        <ToastProvider>
+          <div className="flex h-full min-h-0 w-full bg-bg text-ink">
+            <nav className="flex w-16 shrink-0 flex-col items-center gap-1.5 border-r border-line bg-surface py-3.5">
+              <div
+                className="mb-2 flex h-10 w-10 items-center justify-center rounded-card text-white"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(145deg, var(--color-primary-hover), var(--color-primary))",
+                }}
+              >
+                <BrandMarkIcon className="h-[22px] w-[22px]" />
+              </div>
+              {NAV.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSecao(id)}
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={secao === id}
+                  className={`flex h-11 w-11 items-center justify-center rounded-card transition-all ${
+                    secao === id
+                      ? "glow-primary bg-primary text-white"
+                      : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+                  }`}
+                >
+                  <Icon className="h-[19px] w-[19px]" />
+                </button>
+              ))}
 
-      <main className={`${styles.main} ${activeTab !== "leads" ? styles.mainActive : ""}`}>
-        <section className={`${styles.panel} ${activeTab === "buscar" ? styles.panelActive : ""}`}>
-          <BuscarPanel projetoId={projetoId} projetoNome={projetos.find((p) => p.id === projetoId)?.nome ?? ""} />
-        </section>
-        <section className={`${styles.panel} ${activeTab === "templates" ? styles.panelActive : ""}`}>
-          <TemplatesView />
-        </section>
-        <section className={`${styles.panel} ${activeTab === "blacklist" ? styles.panelActive : ""}`}>
-          <BlacklistView />
-        </section>
-        <section className={`${styles.panel} ${activeTab === "config" ? styles.panelActive : ""}`}>
-          <ConfigPanel active={activeTab === "config"} />
-        </section>
-      </main>
-    </>
+              <div className="mt-auto flex flex-col items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new CustomEvent("prospector:atalhos"))}
+                  title="Atalhos de teclado (?)"
+                  aria-label="Atalhos de teclado"
+                  className="flex h-9 w-9 items-center justify-center rounded-control text-ink-muted transition-colors hover:bg-surface-2 hover:text-ink"
+                >
+                  <KeyboardIcon className="h-4 w-4" />
+                </button>
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={() => setSecao("config")}
+                  title="Configurações"
+                  aria-label="Configurações"
+                  aria-pressed={secao === "config"}
+                  className={`flex h-11 w-11 items-center justify-center rounded-card transition-all ${
+                    secao === "config"
+                      ? "glow-primary bg-primary text-white"
+                      : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+                  }`}
+                >
+                  <SettingsIcon className="h-[19px] w-[19px]" />
+                </button>
+              </div>
+            </nav>
+
+            <main className="relative min-w-0 flex-1">
+              <div className="absolute inset-0" hidden={secao !== "prospeccao"}>
+                <ProspeccaoShell />
+              </div>
+              {secao === "templates" && <div className="h-full overflow-y-auto"><TemplatesView /></div>}
+              {secao === "blacklist" && <div className="h-full overflow-y-auto"><BlacklistView /></div>}
+              {secao === "config" && <div className="h-full overflow-y-auto"><ConfigView /></div>}
+            </main>
+          </div>
+        </ToastProvider>
+      </MensagemProvider>
+    </ProjetoProvider>
   );
 }

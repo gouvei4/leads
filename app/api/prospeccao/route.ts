@@ -8,6 +8,7 @@ import { getTemplates } from "@/lib/templates";
 import { getPerfil } from "@/lib/perfil";
 import { gerarMensagemParaLead } from "@/lib/mensagemTemplate";
 import { getTelefonesBloqueados } from "@/lib/blacklist";
+import { commitEmLotes, type EscritaSet } from "@/lib/firestoreBatch";
 import { BUSCAS_COLLECTION } from "@/lib/buscas";
 import { normalizarTelefoneBr } from "@/lib/whatsapp";
 import type { SiteQualidade } from "@/lib/types";
@@ -105,14 +106,15 @@ export async function POST(request: NextRequest) {
   const buscaRef = db.collection(BUSCAS_COLLECTION).doc();
 
   const refs = resultados.map((r) =>
-    db.collection(LEADS_COLLECTION).doc(leadDocId(projetoId, r.nome, r.endereco))
+    db.collection(LEADS_COLLECTION).doc(leadDocId(projetoId, r.nome, r.endereco, r.place_id))
   );
   const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
 
   let novos = 0;
   let duplicados = 0;
   let enriquecidos = 0;
-  const escritas: Promise<unknown>[] = [];
+  const agora = new Date().toISOString();
+  const escritas: EscritaSet[] = [];
 
   snaps.forEach((snap, idx) => {
     const r = resultados[idx]!;
@@ -133,59 +135,60 @@ export async function POST(request: NextRequest) {
         templates,
         perfil
       );
-      escritas.push(
-        snap.ref.set({
-          nome: r.nome,
-          endereco: r.endereco,
-          telefone: r.telefone,
-          site: r.site,
-          link_maps: r.link_maps,
-          cidade: r.cidade,
-          bairro: r.bairro,
-          termo_busca: nicho,
-          projeto_id: projetoId,
-          status: "Novo",
-          ultimo_contato: "",
-          observacoes: "",
-          criado_em: new Date().toISOString(),
-          lat: r.lat,
-          lng: r.lng,
-          rating: r.rating,
-          avaliacoes: r.avaliacoes,
-          instagram: enrich.instagram,
-          email: enrich.email,
-          site_qualidade: enrich.site_qualidade,
-          site_https: enrich.site_https,
-          site_responsivo: enrich.site_responsivo,
-          site_tempo_ms: enrich.site_tempo_ms,
-          raio_busca_m: raioM,
-          busca_id: buscaRef.id,
-          mensagem_gerada: mensagem.texto,
-          mensagem_template_id: mensagem.templateId,
-          mensagem_variacao_idx: mensagem.variacaoIdx,
-          historico: [{ tipo: "criacao", data: new Date().toISOString() }],
-        })
-      );
+      const dados = {
+        place_id: r.place_id,
+        nome: r.nome,
+        endereco: r.endereco,
+        telefone: r.telefone,
+        site: r.site,
+        link_maps: r.link_maps,
+        cidade: r.cidade,
+        bairro: r.bairro,
+        termo_busca: nicho,
+        projeto_id: projetoId,
+        status: "Novo",
+        ultimo_contato: "",
+        observacoes: "",
+        criado_em: agora,
+        lat: r.lat,
+        lng: r.lng,
+        rating: r.rating,
+        avaliacoes: r.avaliacoes,
+        instagram: enrich.instagram,
+        email: enrich.email,
+        site_qualidade: enrich.site_qualidade,
+        site_https: enrich.site_https,
+        site_responsivo: enrich.site_responsivo,
+        site_tempo_ms: enrich.site_tempo_ms,
+        raio_busca_m: raioM,
+        busca_id: buscaRef.id,
+        mensagem_gerada: mensagem.texto,
+        mensagem_template_id: mensagem.templateId,
+        mensagem_variacao_idx: mensagem.variacaoIdx,
+        historico: [{ tipo: "criacao", data: agora }],
+      };
+      escritas.push({ ref: snap.ref, data: dados });
       novos++;
     } else {
       duplicados++;
     }
   });
-  escritas.push(
-    buscaRef.set({
+  escritas.push({
+    ref: buscaRef,
+    data: {
       projeto_id: projetoId,
       nicho,
       localizacao_texto: localizacaoTexto,
       lat,
       lng,
       raio_m: raioM,
-      criado_em: new Date().toISOString(),
+      criado_em: agora,
       total_no_raio: resultados.length,
       sem_site: semSite,
       novos,
-    })
-  );
-  await Promise.all(escritas);
+    },
+  });
+  await commitEmLotes(db, escritas);
 
   return NextResponse.json({
     ok: true,

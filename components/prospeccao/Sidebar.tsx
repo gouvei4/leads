@@ -7,6 +7,7 @@ import { montarBlocoMensagensLote } from "@/lib/mensagemTemplate";
 import { NICHOS_SUGERIDOS } from "@/lib/nichos";
 import LeadCard, { LeadCardSkeleton } from "./LeadCard";
 import FiltrosPanel, { type FiltrosAvancados } from "./FiltrosPanel";
+import ProjetoBar from "./ProjetoBar";
 import type { Canal } from "./ChannelChips";
 import {
   SearchIcon,
@@ -151,6 +152,7 @@ export default function Sidebar({
   }
   return (
     <aside className="flex h-full w-[400px] shrink-0 flex-col border-r border-line bg-surface">
+      <ProjetoBar />
       <div className="shrink-0 space-y-4 border-b border-line p-4">
         <div>
           <label htmlFor="nicho" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
@@ -223,7 +225,7 @@ export default function Sidebar({
           type="button"
           onClick={onBuscar}
           disabled={buscaDesabilitada || buscando}
-          className="flex w-full items-center justify-center gap-2 rounded-control bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary flex w-full items-center justify-center gap-2 rounded-control px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed"
         >
           <SearchIcon className={`h-4 w-4 ${buscando ? "animate-spin" : ""}`} />
           {buscando ? "Buscando..." : "Buscar leads"}
@@ -247,8 +249,10 @@ export default function Sidebar({
             type="button"
             onClick={() => onViewChange(id)}
             aria-pressed={view === id}
-            className={`flex flex-col items-center gap-1 rounded-control px-2 py-2 text-[11px] font-medium transition-colors ${
-              view === id ? "bg-primary/15 text-primary" : "text-ink-muted hover:bg-surface-2 hover:text-ink"
+            className={`flex flex-col items-center gap-1 rounded-control px-2 py-2 text-[11px] font-semibold transition-all ${
+              view === id
+                ? "glow-primary bg-primary text-white"
+                : "text-ink-muted hover:bg-surface-2 hover:text-ink"
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -314,7 +318,7 @@ export default function Sidebar({
           aria-pressed={apenasRetomar}
           className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
             apenasRetomar
-              ? "border-status-negociando bg-status-negociando/15 text-status-negociando"
+              ? "border-warning bg-warning/15 text-warning"
               : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
           }`}
         >
@@ -364,7 +368,7 @@ export default function Sidebar({
           <button
             type="button"
             onClick={copiarMensagensLote}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-control bg-primary px-2.5 py-1 text-xs font-semibold text-white hover:bg-primary-hover"
+            className="btn-primary ml-auto inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold"
           >
             <CopyIcon className="h-3.5 w-3.5" />
             Copiar todas as mensagens

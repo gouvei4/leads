@@ -147,7 +147,7 @@ export default function LeadDetailModal({
               type="button"
               onClick={buscarCnpj}
               disabled={buscandoCnpj || !cnpjInput.trim()}
-              className="shrink-0 rounded-control bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary shrink-0 rounded-control px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed"
             >
               {buscandoCnpj ? "Buscando..." : "Buscar dados"}
             </button>
@@ -337,7 +337,7 @@ export default function LeadDetailModal({
 
         <label htmlFor="detail-followup" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Lembrete de follow-up
-          {followUpVencido(lead) && <span className="ml-2 font-semibold text-status-negociando">vencido</span>}
+          {followUpVencido(lead) && <span className="ml-2 font-semibold text-warning">vencido</span>}
         </label>
         <input
           id="detail-followup"

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { MessageTemplate } from "@/lib/types";
 import { renderizarTemplate, dadosDoLead, VARIAVEIS_TEMPLATE } from "@/lib/mensagemTemplate";
 import { NICHOS_SUGERIDOS } from "@/lib/nichos";
+import { useMensagemContext } from "./MensagemContext";
 import { PlusIcon, TrashIcon, CopyIcon, InboxIcon } from "../icons";
 
 const LEAD_EXEMPLO = {
@@ -29,38 +30,18 @@ function rascunhoVazio(): RascunhoTemplate {
 }
 
 export default function TemplatesView() {
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const { templates, perfil: perfilRaw, recarregarTemplates } = useMensagemContext();
   const [erro, setErro] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState<RascunhoTemplate>(rascunhoVazio());
   const [salvando, setSalvando] = useState(false);
   const [focoIdx, setFocoIdx] = useState(0);
-  const [perfil, setPerfil] = useState({ meu_nome: "Seu Nome", meu_link: "seulink.com" });
+  const perfil = {
+    meu_nome: perfilRaw.meu_nome || "Seu Nome",
+    meu_link: perfilRaw.meu_link || "seulink.com",
+  };
   const textareaRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
 
-  async function carregar() {
-    setCarregando(true);
-    setErro(null);
-    try {
-      const r = await fetch("/api/templates");
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.erro || "Erro ao carregar templates");
-      setTemplates(d.templates ?? []);
-    } catch (e) {
-      setErro((e as Error).message);
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- carrega templates e perfil ao montar
-    carregar();
-    fetch("/api/perfil")
-      .then((r) => r.json())
-      .then((d) => setPerfil({ meu_nome: d.meu_nome || "Seu Nome", meu_link: d.meu_link || "seulink.com" }))
-      .catch(() => {});
-  }, []);
+  const carregar = recarregarTemplates;
 
   function selecionarTemplate(t: MessageTemplate) {
     setRascunho({ id: t.id, nome: t.nome, nicho_padrao: t.nicho_padrao ?? "", variacoes: [...t.variacoes] });
@@ -176,9 +157,7 @@ export default function TemplatesView() {
           <PlusIcon className="h-4 w-4" /> Novo template
         </button>
 
-        {carregando ? (
-          <p className="text-sm text-ink-muted">Carregando...</p>
-        ) : templates.length === 0 ? (
+        {templates.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-2 py-10 text-center">
             <InboxIcon className="h-7 w-7 text-ink-muted/60" />
             <p className="text-xs text-ink-muted">
@@ -305,7 +284,7 @@ export default function TemplatesView() {
                 className="w-full resize-none rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
               />
               <div className="mt-1 flex items-center justify-between">
-                <span className={`text-xs ${v.length > AVISO_CARACTERES ? "font-semibold text-status-negociando" : "text-ink-muted"}`}>
+                <span className={`text-xs ${v.length > AVISO_CARACTERES ? "font-semibold text-warning" : "text-ink-muted"}`}>
                   {v.length} caracteres{v.length > AVISO_CARACTERES ? " — mensagem longa, considere encurtar" : ""}
                 </span>
                 {rascunho.variacoes.length > 1 && (
@@ -338,7 +317,7 @@ export default function TemplatesView() {
             type="button"
             onClick={salvar}
             disabled={salvando || !rascunho.nome.trim() || !rascunho.variacoes.some((v) => v.trim())}
-            className="rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary rounded-control px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
           >
             {salvando ? "Salvando..." : rascunho.id ? "Salvar alterações" : "Criar template"}
           </button>

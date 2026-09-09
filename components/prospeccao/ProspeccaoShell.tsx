@@ -5,9 +5,10 @@ import dynamic from "next/dynamic";
 import Sidebar, { type SortOption, type UltimaBusca, type ViewId } from "./Sidebar";
 import PainelView from "./PainelView";
 import LeadDetailModal from "./LeadDetailModal";
+import AtalhosModal from "./AtalhosModal";
 import { canaisDoLead, type Canal } from "./ChannelChips";
-import { ToastProvider, useToast } from "./Toast";
-import { MensagemProvider } from "./MensagemContext";
+import { useToast } from "./Toast";
+import { useProjeto } from "./ProjetoContext";
 import { filtrosVazios, type FiltrosAvancados } from "./FiltrosPanel";
 import { calcularScore } from "@/lib/score";
 import { followUpVencido } from "@/lib/followup";
@@ -25,18 +26,9 @@ function CarregandoView() {
 const MapaView = dynamic(() => import("./MapaView"), { ssr: false, loading: CarregandoView });
 const KanbanView = dynamic(() => import("./KanbanView"), { ssr: false, loading: CarregandoView });
 
-export default function ProspeccaoShell({ projetoId }: { projetoId: string }) {
-  return (
-    <ToastProvider>
-      <MensagemProvider>
-        <ProspeccaoShellInner projetoId={projetoId} />
-      </MensagemProvider>
-    </ToastProvider>
-  );
-}
-
-function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
+export default function ProspeccaoShell() {
   const { mostrarToast } = useToast();
+  const { projetoId } = useProjeto();
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
@@ -200,6 +192,7 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
   const [buscaIdFiltro, setBuscaIdFiltro] = useState<string | null>(null);
   const [mostrarCobertura, setMostrarCobertura] = useState(false);
   const [leadFocadoId, setLeadFocadoId] = useState<string | null>(null);
+  const [mostrarAtalhos, setMostrarAtalhos] = useState(false);
 
   function atualizarFiltrosAvancados(patch: Partial<FiltrosAvancados>) {
     setFiltrosAvancados((prev) => ({ ...prev, ...patch }));
@@ -277,7 +270,7 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
 
   function aposAcaoMensagem(lead: Lead, tipo: "mensagem_copiada" | "whatsapp_aberto") {
     atualizarLead(lead.id, {}, { tipo, data: new Date().toISOString() });
-    if (lead.status === "Novo" || lead.status === "Sem contato") {
+    if (lead.status === "Novo") {
       mostrarToast(tipo === "mensagem_copiada" ? "Mensagem copiada." : "WhatsApp aberto.", {
         label: "Marcar como Contatado",
         onClick: () => atualizarLead(lead.id, { status: "Contatado" }),
@@ -286,11 +279,25 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
   }
 
   useEffect(() => {
+    function abrirAtalhos() {
+      setMostrarAtalhos((v) => !v);
+    }
+    window.addEventListener("prospector:atalhos", abrirAtalhos);
+    return () => window.removeEventListener("prospector:atalhos", abrirAtalhos);
+  }, []);
+
+  useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const alvo = e.target as HTMLElement | null;
       const emCampo =
         !!alvo && (["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName) || alvo.isContentEditable);
 
+      if (e.key === "?") {
+        if (emCampo) return;
+        e.preventDefault();
+        setMostrarAtalhos((v) => !v);
+        return;
+      }
       if (e.key === "/") {
         if (emCampo) return;
         e.preventDefault();
@@ -318,14 +325,16 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
         if (lead?.mensagem_gerada) {
           navigator.clipboard.writeText(lead.mensagem_gerada).then(() => aposAcaoMensagem(lead, "mensagem_copiada"));
         }
-      } else if (/^[1-7]$/.test(e.key) && leadFocadoId) {
+      } else if (/^[1-6]$/.test(e.key) && leadFocadoId) {
         const novoStatus = STATUS_OPTIONS[Number(e.key) - 1];
         if (novoStatus) atualizarLead(leadFocadoId, { status: novoStatus });
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  });
+    // Re-registra quando a lista filtrada ou o lead em foco mudam — não a cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadsFiltrados, leadFocadoId]);
 
   async function excluirLead(id: string) {
     setLeads((prev) => prev.filter((l) => l.id !== id));
@@ -340,7 +349,7 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
   }
 
   return (
-    <div className="font-sans flex h-full w-full overflow-hidden bg-bg text-ink">
+    <div className="flex h-full w-full overflow-hidden bg-bg text-ink">
       <Sidebar
         nicho={nicho}
         onNichoChange={setNicho}
@@ -433,6 +442,8 @@ function ProspeccaoShellInner({ projetoId }: { projetoId: string }) {
           onAposAcaoMensagem={aposAcaoMensagem}
         />
       )}
+
+      {mostrarAtalhos && <AtalhosModal onClose={() => setMostrarAtalhos(false)} />}
     </div>
   );
 }

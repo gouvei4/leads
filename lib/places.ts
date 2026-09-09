@@ -1,6 +1,7 @@
 const PLACES_BASE = "https://places.googleapis.com/v1";
 
 export interface PlaceRadiusResultado {
+  place_id: string;
   nome: string;
   endereco: string;
   telefone: string;
@@ -76,6 +77,7 @@ export async function placeDetailsLocation(
 }
 
 const SEARCH_FIELD_MASK = [
+  "places.id",
   "places.displayName",
   "places.formattedAddress",
   "places.nationalPhoneNumber",
@@ -148,6 +150,7 @@ export async function searchByRadius(
       if (lat != null && lng != null && distanciaMetros(center, { lat, lng }) > raio) continue;
 
       resultados.push({
+        place_id: place.id ?? "",
         nome: place.displayName?.text ?? "",
         endereco: place.formattedAddress ?? "",
         telefone: place.nationalPhoneNumber || place.internationalPhoneNumber || "",

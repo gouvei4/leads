@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data / legacy dumps (not versioned — export .xlsx for backups)
+leads.db
+leads_*.csv
+leads_*.xlsx

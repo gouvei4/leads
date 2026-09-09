@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ mostrarToast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-1000 flex flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-4 right-4 z-[1000] flex flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
@@ -61,7 +61,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   t.acao!.onClick();
                   fechar(t.id);
                 }}
-                className="shrink-0 rounded-control bg-primary px-2.5 py-1 text-xs font-semibold text-white hover:bg-primary-hover"
+                className="btn-primary shrink-0 rounded-control px-2.5 py-1 text-xs font-semibold"
               >
                 {t.acao.label}
               </button>
