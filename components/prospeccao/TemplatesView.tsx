@@ -284,7 +284,7 @@ export default function TemplatesView() {
                 className="w-full resize-none rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
               />
               <div className="mt-1 flex items-center justify-between">
-                <span className={`text-xs ${v.length > AVISO_CARACTERES ? "font-semibold text-status-negociando" : "text-ink-muted"}`}>
+                <span className={`text-xs ${v.length > AVISO_CARACTERES ? "font-semibold text-warning" : "text-ink-muted"}`}>
                   {v.length} caracteres{v.length > AVISO_CARACTERES ? " — mensagem longa, considere encurtar" : ""}
                 </span>
                 {rascunho.variacoes.length > 1 && (
@@ -317,7 +317,7 @@ export default function TemplatesView() {
             type="button"
             onClick={salvar}
             disabled={salvando || !rascunho.nome.trim() || !rascunho.variacoes.some((v) => v.trim())}
-            className="rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary rounded-control px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
           >
             {salvando ? "Salvando..." : rascunho.id ? "Salvar alterações" : "Criar template"}
           </button>

@@ -81,7 +81,7 @@ export default function ConfigView() {
               type="button"
               onClick={salvar}
               disabled={salvando}
-              className="rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary rounded-control px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
             >
               {salvando ? "Salvando..." : "Salvar"}
             </button>

@@ -17,11 +17,11 @@ export type StatusOption = (typeof STATUS_OPTIONS)[number];
  */
 export const STATUS_COLORS: Record<StatusOption, string> = {
   Novo: "#3B82F6",
-  Contatado: "#22D3EE",
-  Respondeu: "#A78BFA",
-  Negociando: "#F59E0B",
-  Cliente: "#10B981",
-  Recusado: "#EF4444",
+  Contatado: "#0EA5A0",
+  Respondeu: "#8B5CF6",
+  Negociando: "#EC4899",
+  Cliente: "#16A34A",
+  Recusado: "#E0393B",
 };
 
 export type SiteQualidade = "ausente" | "fraca" | "ok";

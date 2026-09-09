@@ -46,11 +46,11 @@ export default function LeadCard({
 
   return (
     <div
-      className={`rounded-card border p-3 transition-colors ${
-        vencido
-          ? "border-status-negociando/60 bg-status-negociando/5"
-          : selecionado
-            ? "border-primary bg-primary/5"
+      className={`rounded-card border p-3 transition-all ${
+        selecionado
+          ? "glow-active border-primary/50 bg-primary/5"
+          : vencido
+            ? "border-warning/50 bg-warning/5"
             : "border-line bg-surface hover:border-line-strong"
       }`}
     >
@@ -81,7 +81,7 @@ export default function LeadCard({
         <StatusSelect status={lead.status} onChange={(novo) => onAtualizarLead(lead.id, { status: novo })} />
         <SiteQualityBadge qualidade={lead.site_qualidade} />
         {vencido && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-status-negociando/15 px-2 py-0.5 text-[10px] font-semibold text-status-negociando">
+          <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
             <ClockIcon className="h-2.5 w-2.5" /> retomar
           </span>
         )}
@@ -168,7 +168,7 @@ export default function LeadCard({
               <button
                 type="button"
                 onClick={m.salvarEdicao}
-                className="rounded-control bg-primary px-2.5 py-1 text-xs font-semibold text-white hover:bg-primary-hover"
+                className="btn-primary rounded-control px-2.5 py-1 text-xs font-semibold"
               >
                 Salvar
               </button>

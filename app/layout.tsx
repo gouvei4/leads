@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   description: "Busca, salva e organiza empresas para prospecção",
 };
 
-const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("prospector:theme");var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`;
+// Tema claro por padrão; só fica escuro se o usuário escolher no toggle.
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("prospector:theme");document.documentElement.setAttribute("data-theme",s==="dark"?"dark":"light");}catch(e){document.documentElement.setAttribute("data-theme","light");}})();`;
 
 export default function RootLayout({
   children,

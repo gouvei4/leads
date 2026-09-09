@@ -1,74 +1,85 @@
 @import "tailwindcss";
 
 /*
- * Fonte única de design tokens (Tailwind v4 `@theme`). O tema claro sobrescreve
- * só as cores logo abaixo. As cores de status espelham STATUS_COLORS em
- * lib/types.ts (usado no lado JS: Leaflet, dots do Kanban).
+ * Fonte única de design tokens (Tailwind v4 `@theme`) — tema CLARO por padrão.
+ * O tema escuro sobrescreve só as cores em :root[data-theme="dark"] mais abaixo.
+ * As cores de status espelham STATUS_COLORS em lib/types.ts (lado JS: Leaflet,
+ * dots do Kanban).
  */
 @theme {
   --font-sans: var(--font-jakarta), -apple-system, "Segoe UI", Roboto, sans-serif;
 
-  --color-bg: #0a0f1c;
-  --color-surface: #111827;
-  --color-surface-2: #1b2436;
-  --color-line: #253046;
-  --color-line-strong: #33415c;
+  --color-bg: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f2f5;
+  --color-line: #e6e8ec;
+  --color-line-strong: #d4d7de;
 
-  --color-primary: #2563eb;
-  --color-primary-hover: #3b82f6;
-  --color-cyan: #22d3ee;
+  /* laranja / coral quente */
+  --color-primary: #ea580c;
+  --color-primary-hover: #fb923c;
+  --color-cyan: #0d9488;
 
-  --color-ink: #f1f5f9;
-  --color-ink-muted: #94a3b8;
+  --color-ink: #0a0a0b;
+  --color-ink-muted: #6b7280;
+
+  --color-warning: #d97706;
+  --color-success: #16a34a;
 
   --color-status-novo: #3b82f6;
-  --color-status-contatado: #22d3ee;
-  --color-status-respondeu: #a78bfa;
-  --color-status-negociando: #f59e0b;
-  --color-status-cliente: #10b981;
-  --color-status-recusado: #ef4444;
+  --color-status-contatado: #0ea5a0;
+  --color-status-respondeu: #8b5cf6;
+  --color-status-negociando: #ec4899;
+  --color-status-cliente: #16a34a;
+  --color-status-recusado: #e0393b;
 
-  --color-score-baixo: #64748b;
-  --color-score-medio: #3b82f6;
-  --color-score-alto: #22d3ee;
+  --color-score-baixo: #a1a1aa;
+  --color-score-medio: #eab308;
+  --color-score-alto: #22c55e;
 
-  --color-whatsapp: #25d366;
+  --color-whatsapp: #1fad53;
 
-  --radius-card: 12px;
-  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-control: 12px;
 }
 
-:root[data-theme="light"] {
-  --color-bg: #f5f7fc;
-  --color-surface: #ffffff;
-  --color-surface-2: #eef2f9;
-  --color-line: #e1e7f2;
-  --color-line-strong: #c9d3e6;
+/* Tema escuro — cinza-carvão neutro e quente, nada de navy. */
+:root[data-theme="dark"] {
+  --color-bg: #1b1a1d;
+  --color-surface: #242226;
+  --color-surface-2: #2e2b31;
+  --color-line: #38343d;
+  --color-line-strong: #4a454f;
 
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-cyan: #0e7490;
+  --color-primary: #fb923c;
+  --color-primary-hover: #fdba74;
+  --color-cyan: #2dd4bf;
 
-  --color-ink: #10182c;
-  --color-ink-muted: #5b6785;
+  --color-ink: #f5f3f6;
+  --color-ink-muted: #a29aa8;
 
-  --color-status-novo: #2563eb;
-  --color-status-contatado: #0e7490;
-  --color-status-respondeu: #7c3aed;
-  --color-status-negociando: #d97706;
-  --color-status-cliente: #059669;
-  --color-status-recusado: #dc2626;
+  --color-warning: #fbbf24;
+  --color-success: #4ade80;
 
-  --color-score-baixo: #475569;
-  --color-score-medio: #2563eb;
-  --color-score-alto: #0e7490;
+  --color-status-novo: #3b82f6;
+  --color-status-contatado: #2dd4bf;
+  --color-status-respondeu: #a78bfa;
+  --color-status-negociando: #f472b6;
+  --color-status-cliente: #4ade80;
+  --color-status-recusado: #f87171;
+
+  --color-score-baixo: #a1a1aa;
+  --color-score-medio: #fbbf24;
+  --color-score-alto: #4ade80;
+
+  --color-whatsapp: #25d366;
 }
 
 :root {
-  color-scheme: dark;
-}
-:root[data-theme="light"] {
   color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 *,
@@ -115,6 +126,12 @@ ol {
   margin: 0;
 }
 
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
 ul,
 ol {
   list-style: none;
@@ -122,7 +139,7 @@ ol {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 26%, transparent);
   color: var(--color-ink);
 }
 
@@ -146,6 +163,63 @@ ol {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 70%, transparent);
   outline-offset: 2px;
+  border-radius: 5px;
+}
+
+/* Foco "suave com brilho" nos campos, sem tocar em cada componente. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+@layer components {
+  /* Botão principal: gradiente quente + halo colorido difuso. */
+  .btn-primary {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-primary) 84%, white),
+      var(--color-primary)
+    );
+    color: #fff;
+    box-shadow:
+      0 1px 2px color-mix(in srgb, var(--color-primary) 32%, transparent),
+      0 10px 24px -8px color-mix(in srgb, var(--color-primary) 45%, transparent);
+    transition:
+      box-shadow 0.18s ease,
+      filter 0.18s ease,
+      transform 0.12s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    box-shadow:
+      0 1px 2px color-mix(in srgb, var(--color-primary) 38%, transparent),
+      0 16px 32px -6px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  }
+  .btn-primary:active:not(:disabled) {
+    transform: translateY(0.5px);
+    filter: brightness(0.97);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    box-shadow: none;
+    filter: grayscale(0.2);
+    cursor: not-allowed;
+  }
+
+  /* Halo pra item selecionado (card de lead). */
+  .glow-active {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-primary) 55%, transparent),
+      0 0 0 5px color-mix(in srgb, var(--color-primary) 14%, transparent);
+  }
+
+  /* Brilho difuso pra baixo (item de nav ativo, toggle de view). */
+  .glow-primary {
+    box-shadow: 0 4px 16px -2px color-mix(in srgb, var(--color-primary) 42%, transparent);
+  }
 }

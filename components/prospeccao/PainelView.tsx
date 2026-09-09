@@ -107,7 +107,7 @@ export default function PainelView({ leads }: { leads: Lead[] }) {
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total de leads" valor={total} />
         <StatCard label="Pipeline ativo" valor={resumo.ativos} />
-        <StatCard label="Follow-ups pendentes" valor={resumo.followUpsPendentes} cor={STATUS_COLORS.Negociando} />
+        <StatCard label="Follow-ups pendentes" valor={resumo.followUpsPendentes} cor="var(--color-warning)" />
         <StatCard label="Clientes no mês" valor={resumo.clientesNoMes} cor={STATUS_COLORS.Cliente} />
       </div>
 

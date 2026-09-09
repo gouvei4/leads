@@ -44,9 +44,15 @@ export default function AppShell() {
       <MensagemProvider>
         <ToastProvider>
           <div className="flex h-full min-h-0 w-full bg-bg text-ink">
-            <nav className="flex w-14 shrink-0 flex-col items-center gap-1 border-r border-line bg-surface py-3">
-              <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-control bg-primary/15 text-primary">
-                <BrandMarkIcon className="h-5 w-5" />
+            <nav className="flex w-16 shrink-0 flex-col items-center gap-1.5 border-r border-line bg-surface py-3.5">
+              <div
+                className="mb-2 flex h-10 w-10 items-center justify-center rounded-card text-white"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(145deg, var(--color-primary-hover), var(--color-primary))",
+                }}
+              >
+                <BrandMarkIcon className="h-[22px] w-[22px]" />
               </div>
               {NAV.map(({ id, label, Icon }) => (
                 <button
@@ -56,17 +62,17 @@ export default function AppShell() {
                   title={label}
                   aria-label={label}
                   aria-pressed={secao === id}
-                  className={`flex h-10 w-10 items-center justify-center rounded-control transition-colors ${
+                  className={`flex h-11 w-11 items-center justify-center rounded-card transition-all ${
                     secao === id
-                      ? "bg-primary/15 text-primary"
+                      ? "glow-primary bg-primary text-white"
                       : "text-ink-muted hover:bg-surface-2 hover:text-ink"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
+                  <Icon className="h-[19px] w-[19px]" />
                 </button>
               ))}
 
-              <div className="mt-auto flex flex-col items-center gap-1">
+              <div className="mt-auto flex flex-col items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => window.dispatchEvent(new CustomEvent("prospector:atalhos"))}
@@ -83,13 +89,13 @@ export default function AppShell() {
                   title="Configurações"
                   aria-label="Configurações"
                   aria-pressed={secao === "config"}
-                  className={`flex h-10 w-10 items-center justify-center rounded-control transition-colors ${
+                  className={`flex h-11 w-11 items-center justify-center rounded-card transition-all ${
                     secao === "config"
-                      ? "bg-primary/15 text-primary"
+                      ? "glow-primary bg-primary text-white"
                       : "text-ink-muted hover:bg-surface-2 hover:text-ink"
                   }`}
                 >
-                  <SettingsIcon className="h-[18px] w-[18px]" />
+                  <SettingsIcon className="h-[19px] w-[19px]" />
                 </button>
               </div>
             </nav>

@@ -111,7 +111,7 @@ export default function BlacklistView() {
           type="button"
           onClick={adicionar}
           disabled={salvando || !valor.trim()}
-          className="inline-flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary inline-flex items-center gap-1.5 rounded-control px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
         >
           <PlusIcon className="h-4 w-4" /> Bloquear
         </button>

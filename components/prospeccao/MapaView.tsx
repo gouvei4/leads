@@ -56,7 +56,7 @@ function iconeCluster(count: number): L.DivIcon {
   const tamanho = count < 10 ? 32 : count < 50 ? 38 : 44;
   return L.divIcon({
     className: "",
-    html: `<div style="width:${tamanho}px;height:${tamanho}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#2563EB;color:#fff;font:600 12px var(--font-sans, sans-serif);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);">${count}</div>`,
+    html: `<div style="width:${tamanho}px;height:${tamanho}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#EA580C;color:#fff;font:600 12px var(--font-sans, sans-serif);border:2px solid #fff;box-shadow:0 2px 10px rgba(234,88,12,.5);">${count}</div>`,
     iconSize: [tamanho, tamanho],
   });
 }
@@ -130,7 +130,7 @@ export default function MapaView({
           <Circle
             center={[centro.lat, centro.lng]}
             radius={raioMetros}
-            pathOptions={{ color: "#2563EB", weight: 2, dashArray: "6 6", fillColor: "#2563EB", fillOpacity: 0.08 }}
+            pathOptions={{ color: "#EA580C", weight: 2, dashArray: "6 6", fillColor: "#EA580C", fillOpacity: 0.08 }}
           />
         )}
 

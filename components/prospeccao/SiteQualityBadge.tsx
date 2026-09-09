@@ -2,8 +2,8 @@ import type { SiteQualidade } from "@/lib/types";
 
 const CONFIG: Record<SiteQualidade, { label: string; cor: string }> = {
   ausente: { label: "Sem site", cor: "var(--color-status-recusado)" },
-  fraca: { label: "Site fraco", cor: "var(--color-status-negociando)" },
-  ok: { label: "Site OK", cor: "var(--color-status-cliente)" },
+  fraca: { label: "Site fraco", cor: "var(--color-warning)" },
+  ok: { label: "Site OK", cor: "var(--color-success)" },
 };
 
 export default function SiteQualityBadge({ qualidade }: { qualidade: SiteQualidade | undefined }) {
