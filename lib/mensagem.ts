@@ -117,18 +117,3 @@ export function mensagensFallbackPara(qualidade?: SiteQualidade | string): reado
   if (qualidade === "ok") return MENSAGENS_SITE_OK;
   return MENSAGENS_SEM_SITE;
 }
-
-/**
- * Monta uma mensagem de fallback avulsa (só substitui {{nome}}). O caminho
- * principal — gerarMensagemParaLead — usa mensagensFallbackPara + renderizarTemplate,
- * que resolve todas as variáveis e ainda registra qual variação foi usada.
- */
-export function montarMensagem(nomeEmpresa: string, qualidade?: SiteQualidade | string): string {
-  const lista = mensagensFallbackPara(qualidade);
-  const bruto = lista[Math.floor(Math.random() * lista.length)] ?? "";
-  return bruto
-    .replace(/\{\{\s*nome\s*\}\}/g, nomeEmpresa.trim() || "vocês")
-    .replace(/\{\{\s*\w+\s*\}\}/g, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
-}

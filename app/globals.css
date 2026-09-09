@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Fonte única de design tokens (Tailwind v4 `@theme`). O tema claro sobrescreve
+ * só as cores logo abaixo. As cores de status espelham STATUS_COLORS em
+ * lib/types.ts (usado no lado JS: Leaflet, dots do Kanban).
+ */
 @theme {
-  --font-sans: var(--font-jakarta), var(--font-roboto), -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-jakarta), -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --color-bg: #0a0f1c;
   --color-surface: #111827;
@@ -17,7 +22,6 @@
   --color-ink-muted: #94a3b8;
 
   --color-status-novo: #3b82f6;
-  --color-status-sem-contato: #94a3b8;
   --color-status-contatado: #22d3ee;
   --color-status-respondeu: #a78bfa;
   --color-status-negociando: #f59e0b;
@@ -49,7 +53,6 @@
   --color-ink-muted: #5b6785;
 
   --color-status-novo: #2563eb;
-  --color-status-sem-contato: #64748b;
   --color-status-contatado: #0e7490;
   --color-status-respondeu: #7c3aed;
   --color-status-negociando: #d97706;
@@ -63,95 +66,9 @@
 
 :root {
   color-scheme: dark;
-
-  --bg: #0a0e1a;
-  --surface: #10162a;
-  --surface-2: #141b32;
-  --surface-hover: #182042;
-  --border: #1f2942;
-  --border-strong: #2c3856;
-
-  --text: #e8ecf7;
-  --text-muted: #8d9ab8;
-  --text-dim: #57628a;
-
-  --accent: #4f7fff;
-  --accent-hover: #729aff;
-  --accent-dim: #16213f;
-  --accent-soft: rgba(79, 127, 255, 0.16);
-  --accent-text: #aec2ff;
-
-  --success: #34c98a;
-  --success-soft: rgba(52, 201, 138, 0.14);
-  --warning: #e0ab45;
-  --warning-soft: rgba(224, 171, 69, 0.14);
-  --info: #4fb3e0;
-  --info-soft: rgba(79, 179, 224, 0.14);
-  --purple: #a78bfa;
-  --purple-soft: rgba(167, 139, 250, 0.14);
-  --danger: #f0596b;
-  --danger-soft: rgba(240, 89, 107, 0.14);
-  --neutral-soft: rgba(141, 154, 184, 0.12);
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 6px 18px -8px rgba(2, 6, 16, 0.5);
-
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-pill: 999px;
-
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
-
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur-fast: 0.12s;
-  --dur: 0.18s;
-
-  --sans: var(--font-roboto), -apple-system, "Segoe UI", sans-serif;
-  --heading: var(--font-poppins), var(--sans);
-  --mono: var(--font-jbmono), "Consolas", monospace;
 }
-
 :root[data-theme="light"] {
   color-scheme: light;
-
-  --bg: #f5f7fc;
-  --surface: #ffffff;
-  --surface-2: #eef2f9;
-  --surface-hover: #e6ecf7;
-  --border: #e1e7f2;
-  --border-strong: #c9d3e6;
-
-  --text: #10182c;
-  --text-muted: #5b6785;
-  --text-dim: #8b96b3;
-
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --accent-dim: #dbe7fd;
-  --accent-soft: rgba(37, 99, 235, 0.08);
-  --accent-text: #1d4ed8;
-
-  --success: #17a35a;
-  --success-soft: rgba(23, 163, 90, 0.1);
-  --warning: #d68a12;
-  --warning-soft: rgba(214, 138, 18, 0.1);
-  --info: #0d84c9;
-  --info-soft: rgba(13, 132, 201, 0.1);
-  --purple: #7c4de0;
-  --purple-soft: rgba(124, 77, 224, 0.1);
-  --danger: #dc3b4c;
-  --danger-soft: rgba(220, 59, 76, 0.1);
-  --neutral-soft: rgba(91, 103, 133, 0.08);
-
-  --shadow-sm: 0 1px 2px rgba(16, 24, 44, 0.06);
-  --shadow-md: 0 10px 26px -12px rgba(16, 24, 44, 0.16);
 }
 
 *,
@@ -175,23 +92,18 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 a {
   color: inherit;
-}
-
-button {
-  font-family: var(--sans);
 }
 
 h1,
@@ -203,12 +115,6 @@ ol {
   margin: 0;
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--heading);
-}
-
 ul,
 ol {
   list-style: none;
@@ -216,8 +122,8 @@ ol {
 }
 
 ::selection {
-  background: var(--accent-dim);
-  color: var(--accent-text);
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: var(--color-ink);
 }
 
 ::-webkit-scrollbar {
@@ -230,16 +136,16 @@ ol {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--border-strong);
+  background-color: var(--color-line-strong);
   border-radius: 999px;
-  border: 3px solid var(--bg);
+  border: 3px solid var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-dim);
+  background-color: var(--color-ink-muted);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

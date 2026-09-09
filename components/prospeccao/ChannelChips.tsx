@@ -1,5 +1,5 @@
 import type { Lead } from "@/lib/types";
-import { normalizarTelefoneBr } from "@/lib/whatsapp";
+import { ehCelularBr, normalizarTelefoneBr } from "@/lib/whatsapp";
 
 function Chip({ ativo, label }: { ativo: boolean; label: string }) {
   return (
@@ -16,8 +16,9 @@ function Chip({ ativo, label }: { ativo: boolean; label: string }) {
 export type Canal = "whatsapp" | "instagram" | "email";
 
 export function canaisDoLead(lead: Lead): Record<Canal, boolean> {
+  const tel = normalizarTelefoneBr(lead.telefone || "");
   return {
-    whatsapp: Boolean(normalizarTelefoneBr(lead.telefone || "")),
+    whatsapp: Boolean(tel && ehCelularBr(tel)),
     instagram: Boolean(lead.instagram),
     email: Boolean(lead.email),
   };

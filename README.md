@@ -2,11 +2,12 @@
 
 Sistema para buscar empresas (Google Places), salvar no Firestore e
 gerenciar o status de cada uma (Novo, Contatado, Respondeu, Negociando,
-Cliente, Sem interesse). Não tem login — é feito para uso pessoal.
+Cliente, Recusado). Não tem login próprio — é feito para uso pessoal
+(dá pra travar por senha, veja `APP_PASSWORD` abaixo).
 
-Stack: **Next.js (App Router + TypeScript)**, **CSS Modules**,
-**Firebase Firestore** (via Admin SDK, só no servidor), deploy na
-**Vercel**.
+Stack: **Next.js (App Router + TypeScript)**, **Tailwind CSS v4**,
+**Firebase Firestore** (via Admin SDK, só no servidor), **Leaflet** pro
+mapa, deploy na **Vercel**.
 
 ## 1. Instalar
 
@@ -40,6 +41,12 @@ cp .env.local.example .env.local
      três variáveis (mantenha as quebras de linha da chave como `\n`,
      tudo em uma linha só, entre aspas).
 
+- **`APP_PASSWORD`** (opcional, mas recomendado em produção): se
+  preenchido, o site inteiro — incluindo as rotas `/api` — passa a pedir
+  senha (HTTP Basic; qualquer usuário, essa senha). Vazio = sem trava,
+  ok pra rodar só local. Sem isso, qualquer um com a URL da Vercel lê e
+  escreve seus dados e gasta sua cota do Google.
+
 Essas variáveis nunca devem ser commitadas — o `.env.local` já está no
 `.gitignore`. Na Vercel, configure as mesmas variáveis em
 **Project Settings → Environment Variables**.
@@ -61,63 +68,65 @@ Abra **http://localhost:3000**.
 npx vercel
 ```
 
-Ou conecte o repositório pelo painel da Vercel. Lembre de configurar as
-4 variáveis de ambiente (`GOOGLE_PLACES_KEY`, `FIREBASE_PROJECT_ID`,
-`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`) no projeto da Vercel.
+Ou conecte o repositório pelo painel da Vercel. Configure as variáveis de
+ambiente no projeto da Vercel (`GOOGLE_PLACES_KEY`, `FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` e, de preferência,
+`APP_PASSWORD`).
 
-> Buscas muito grandes (muitas combinações de termo × cidade) podem
-> passar do tempo máximo de uma função serverless. Prefira rodar em
-> lotes menores (poucas dezenas de combinações por vez).
+> A busca enriquece cada resultado (baixa a home do site pra classificar
+> qualidade e achar Instagram/e-mail), então tem um teto de tempo. Raios
+> muito grandes com muitos resultados podem passar do limite da função
+> serverless — se acontecer, reduza o raio.
 
 ## 5. Usar
 
-- **Projetos**: no topo da tela (abaixo do cabeçalho) tem um seletor de
-  projeto. Cada projeto é uma prospecção separada — por exemplo,
-  "Caçambas" e "Elétrica" não se misturam: leads, busca e exportação
-  ficam sempre dentro do projeto selecionado. Crie um projeto novo pelo
-  `+`, renomeie pelo lápis, ou exclua pela lixeira (excluir um projeto
-  não apaga os leads dele, só os deixa sem projeto).
-- **Aba Buscar**: cole os termos (um por linha) e as cidades (uma por
-  linha). Clica em Iniciar busca — roda todas as combinações e salva
-  tudo no Firestore **dentro do projeto selecionado**, sem duplicar
-  quem já existe nesse mesmo projeto (dedupe por projeto + nome +
-  endereço — a mesma empresa pode aparecer em projetos diferentes).
-- **Aba Leads**: lista do projeto atual. Filtra por cidade/status/termo,
-  muda o status de cada empresa num clique, anota observações e data do
-  último contato direto na tabela.
-- **Exportar .xlsx**: baixa a lista do projeto atual (respeitando os
-  filtros) em Excel formatado.
+A tela é única: uma barra fina de ícones à esquerda troca entre
+**Prospecção**, **Templates**, **Blacklist** e **Configurações**.
+
+- **Projeto** (topo da sidebar, na Prospecção): cada projeto é uma
+  prospecção separada — "Caçambas" e "Elétrica" não se misturam. Leads,
+  busca e exportação ficam sempre dentro do projeto selecionado. `+` cria,
+  o lápis renomeia, a lixeira exclui (excluir um projeto não apaga os
+  leads dele, só os deixa sem projeto).
+- **Buscar** (sidebar): informe o **nicho**, escolha a **localização**
+  pelo autocomplete e o **raio**. A busca roda no Google Places, filtra
+  pela distância real do centro, enriquece cada resultado e salva no
+  projeto atual — sem duplicar (dedupe por `place_id` do Google, ou por
+  nome + endereço em imports antigos).
+- **Mapa / Kanban / Painel** (sidebar): três formas de ver os mesmos
+  leads. Mapa mostra os pins por status; Kanban permite arrastar entre
+  status; Painel traz funil, conversão e desempenho por nicho/cidade/
+  template.
+- **Lead**: clique num card pra abrir o detalhe — mensagem gerada (copiar
+  / WhatsApp / regenerar / editar), status, último contato, follow-up,
+  tags, observações, dados de CNPJ e histórico.
+- **Atalhos de teclado**: `?` abre a lista (`j`/`k` navegam, `c` copia,
+  `1`–`6` mudam status, `/` foca a busca).
+- **Exportar** (sidebar): baixa a lista do projeto atual em `.xlsx` ou
+  `.csv`.
 
 ## Onde ficam os dados
 
-Tudo fica no **Firestore** (coleção `leads`), não mais num arquivo
-local. Backup é responsabilidade do Firebase (ou exporte para `.xlsx`
-periodicamente).
+Tudo no **Firestore** (coleções `leads`, `projetos`, `templates`,
+`buscas`, `blacklist`, `config`). Backup é responsabilidade do Firebase
+— ou exporte pra `.xlsx` de vez em quando.
 
 ## Importar planilhas antigas (CSV/XLSX)
 
-Se você tem arquivos `.csv` ou `.xlsx` de listas antigas (formato do
-app Flask, com colunas como `nome,telefone,endereco,site,link_maps,busca`
-ou o export `Nome,Telefone,Cidade,Endereco,Site,Link Maps,Termo da
-Busca,Status,Ultimo Contato,Observacoes`), importe direto pro Firestore:
+Pra trazer listas antigas (colunas como
+`nome,telefone,endereco,site,link_maps,busca` ou o export
+`Nome,Telefone,Cidade,Endereco,Site,Link Maps,Termo da
+Busca,Status,Ultimo Contato,Observacoes`):
 
 ```bash
 npm run import-leads -- leads_cacambas.csv "Cacambas"
-npm run import-leads -- leads_20260707.xlsx "Nome do projeto"
+npm run import-leads -- lista.xlsx "Nome do projeto"
 ```
 
-O segundo argumento é o projeto de destino — se não existir, é criado
-automaticamente. Não duplica quem já existir no mesmo projeto (mesmo
-nome + endereço) — se a planilha trouxer Status/Observações/Último
-contato preenchidos pra alguém que já existe, esses campos são
-atualizados; senão, o lead existente é ignorado sem mudanças.
-
-## Sobre a versão anterior (Flask)
-
-A versão antiga (Flask + SQLite) foi movida para `legacy-flask/`, só
-como referência — não é mais mantida. Os arquivos `leads.db`,
-`leads_cacambas.csv` e `leads_20260707.xlsx` na raiz são os dados que
-você já tinha coletado antes da migração.
+O segundo argumento é o projeto de destino — criado automaticamente se
+não existir. Não duplica quem já existe no mesmo projeto (nome +
+endereço); se a planilha trouxer Status/Observações/Último contato
+preenchidos pra alguém que já existe, esses campos são atualizados.
 
 ## Dúvidas comuns
 
@@ -128,3 +137,5 @@ você já tinha coletado antes da migração.
   normal de prospecção).
 - **"Firebase Admin não configurado"**: falta preencher `FIREBASE_*`
   no `.env.local` (ou nas variáveis de ambiente da Vercel).
+- **A versão antiga (Flask + SQLite)** foi removida do repositório; se
+  precisar, está no histórico do git antes deste commit.

@@ -18,8 +18,16 @@ export function normalizarTelefoneBr(telefone: string): string | null {
   return null;
 }
 
+/**
+ * Celular BR tem o 9 na frente do número: DDI(55) + DDD(2) + 9 + 8 dígitos = 13.
+ * Número de 12 dígitos (55 + DDD + 8) é fixo — não tem WhatsApp.
+ */
+export function ehCelularBr(numeroNormalizado: string): boolean {
+  return numeroNormalizado.length === 13;
+}
+
 export function waLink(telefone: string, mensagem: string): string | null {
   const numero = normalizarTelefoneBr(telefone);
-  if (!numero) return null;
+  if (!numero || !ehCelularBr(numero)) return null;
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
 }

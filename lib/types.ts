@@ -1,6 +1,5 @@
 export const STATUS_OPTIONS = [
   "Novo",
-  "Sem contato",
   "Contatado",
   "Respondeu",
   "Negociando",
@@ -10,9 +9,14 @@ export const STATUS_OPTIONS = [
 
 export type StatusOption = (typeof STATUS_OPTIONS)[number];
 
+/**
+ * Fonte única das cores de status no lado JS (marcadores do Leaflet, dots do
+ * Kanban, barras do Painel). Mantenha em sincronia com os tokens
+ * `--color-status-*` em app/globals.css, que são a fonte pro Tailwind
+ * (classes `bg-status-*`, `text-status-*`).
+ */
 export const STATUS_COLORS: Record<StatusOption, string> = {
   Novo: "#3B82F6",
-  "Sem contato": "#94A3B8",
   Contatado: "#22D3EE",
   Respondeu: "#A78BFA",
   Negociando: "#F59E0B",
@@ -46,6 +50,8 @@ export interface Tag {
 export interface Lead {
   id: string;
   projeto_id: string;
+  /** ID do Google Places — chave de dedupe pra leads vindos de busca. */
+  place_id?: string;
   nome: string;
   telefone: string;
   endereco: string;
@@ -86,18 +92,6 @@ export interface Projeto {
   id: string;
   nome: string;
   criado_em: string;
-}
-
-export interface Stats {
-  total: number;
-  por_status: Record<string, number>;
-}
-
-export interface LeadsResponse {
-  leads: Lead[];
-  cidades: string[];
-  termos: string[];
-  status_options: readonly string[];
 }
 
 export interface MessageTemplate {

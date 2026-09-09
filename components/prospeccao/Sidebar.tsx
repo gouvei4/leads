@@ -7,6 +7,7 @@ import { montarBlocoMensagensLote } from "@/lib/mensagemTemplate";
 import { NICHOS_SUGERIDOS } from "@/lib/nichos";
 import LeadCard, { LeadCardSkeleton } from "./LeadCard";
 import FiltrosPanel, { type FiltrosAvancados } from "./FiltrosPanel";
+import ProjetoBar from "./ProjetoBar";
 import type { Canal } from "./ChannelChips";
 import {
   SearchIcon,
@@ -151,6 +152,7 @@ export default function Sidebar({
   }
   return (
     <aside className="flex h-full w-[400px] shrink-0 flex-col border-r border-line bg-surface">
+      <ProjetoBar />
       <div className="shrink-0 space-y-4 border-b border-line p-4">
         <div>
           <label htmlFor="nicho" className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
