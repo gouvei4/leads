@@ -27,7 +27,7 @@ export const STATUS_COLORS: Record<StatusOption, string> = {
 export type SiteQualidade = "ausente" | "fraca" | "ok";
 
 export interface HistoricoEvento {
-  tipo: "status" | "mensagem_copiada" | "whatsapp_aberto" | "nota" | "criacao";
+  tipo: "status" | "mensagem_copiada" | "whatsapp_aberto" | "nota" | "criacao" | "follow_up" | "resultado" | "valor";
   data: string;
   de?: string;
   para?: string;
@@ -85,6 +85,11 @@ export interface Lead {
   cnpj?: string | null;
   cnpj_info?: CnpjInfo | null;
   follow_up?: string | null;
+  /** Motivo padronizado do desfecho comercial (ganho ou perda). */
+  motivo_resultado?: string | null;
+  /** Valores em reais, sem formatação, para métricas comerciais. */
+  valor_estimado?: number | null;
+  valor_fechado?: number | null;
   historico?: HistoricoEvento[];
 }
 

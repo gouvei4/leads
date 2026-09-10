@@ -11,7 +11,7 @@ import { useToast } from "./Toast";
 import { useProjeto } from "./ProjetoContext";
 import { filtrosVazios, type FiltrosAvancados } from "./FiltrosPanel";
 import { calcularScore } from "@/lib/score";
-import { followUpVencido } from "@/lib/followup";
+import { followUpVencido, proximoFollowUp } from "@/lib/followup";
 import { STATUS_OPTIONS, type Busca, type HistoricoEvento, type Lead } from "@/lib/types";
 import type { SugestaoLocalizacao } from "@/lib/places";
 
@@ -253,18 +253,21 @@ export default function ProspeccaoShell() {
 
   async function atualizarLead(id: string, updates: Partial<Lead>, eventoExtra?: HistoricoEvento) {
     const atual = leads.find((l) => l.id === id) ?? (leadSelecionado?.id === id ? leadSelecionado : undefined);
+    const updatesComCadencia = { ...updates };
     let evento = eventoExtra;
     if (!evento && updates.status && atual && updates.status !== atual.status) {
       evento = { tipo: "status", data: new Date().toISOString(), de: atual.status, para: updates.status };
+      // Ao avançar no funil, já deixa a próxima ação comercial na agenda.
+      updatesComCadencia.follow_up = proximoFollowUp(updates.status);
     }
 
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updates } : l)));
-    setLeadSelecionado((prev) => (prev && prev.id === id ? { ...prev, ...updates } : prev));
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updatesComCadencia } : l)));
+    setLeadSelecionado((prev) => (prev && prev.id === id ? { ...prev, ...updatesComCadencia } : prev));
 
     await fetch(`/api/leads/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(evento ? { ...updates, evento } : updates),
+      body: JSON.stringify(evento ? { ...updatesComCadencia, evento } : updatesComCadencia),
     });
   }
 

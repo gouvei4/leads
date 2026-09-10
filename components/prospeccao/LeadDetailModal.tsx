@@ -7,7 +7,7 @@ import ChannelChips from "./ChannelChips";
 import SiteQualityBadge from "./SiteQualityBadge";
 import { useMensagemLead } from "./useMensagemLead";
 import HistoricoTimeline from "./HistoricoTimeline";
-import { followUpVencido } from "@/lib/followup";
+import { dataEmDias, followUpVencido } from "@/lib/followup";
 import { corDaTag } from "@/lib/tags";
 import {
   XIcon,
@@ -22,6 +22,16 @@ import {
   RefreshIcon,
   ShieldOffIcon,
 } from "../icons";
+
+const MOTIVOS_RESULTADO = [
+  "Sem interesse",
+  "Sem orçamento",
+  "Já tem fornecedor",
+  "Sem resposta",
+  "Contato inválido",
+  "Fora do perfil",
+  "Fechado",
+] as const;
 
 export default function LeadDetailModal({
   lead,
@@ -41,7 +51,23 @@ export default function LeadDetailModal({
   const [buscandoCnpj, setBuscandoCnpj] = useState(false);
   const [erroCnpj, setErroCnpj] = useState<string | null>(null);
   const [novaTag, setNovaTag] = useState("");
+  const [valorEstimado, setValorEstimado] = useState(lead.valor_estimado?.toString() ?? "");
+  const [valorFechado, setValorFechado] = useState(lead.valor_fechado?.toString() ?? "");
   const m = useMensagemLead(lead, onUpdate, onAposAcaoMensagem);
+
+  function salvarValor(campo: "valor_estimado" | "valor_fechado", texto: string) {
+    const valor = texto.trim() === "" ? null : Number(texto);
+    if (valor !== null && (!Number.isFinite(valor) || valor < 0)) return;
+    if (lead[campo] === valor) return;
+    const rotulo = campo === "valor_estimado" ? "Estimativa" : "Fechado";
+    const exibicao = valor == null ? `${rotulo} removido` : `${rotulo}: R$ ${valor.toFixed(2)}`;
+    onUpdate(lead.id, { [campo]: valor }, { tipo: "valor", data: new Date().toISOString(), texto: exibicao });
+  }
+
+  function agendarFollowUp(dias: number) {
+    const data = dataEmDias(dias);
+    onUpdate(lead.id, { follow_up: data }, { tipo: "follow_up", data: new Date().toISOString(), texto: data });
+  }
 
   function adicionarTag() {
     const nome = novaTag.trim();
@@ -324,6 +350,65 @@ export default function LeadDetailModal({
           ))}
         </select>
 
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="detail-valor-estimado" className="block text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              Valor estimado (R$)
+            </label>
+            <input
+              id="detail-valor-estimado"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={valorEstimado}
+              onChange={(e) => setValorEstimado(e.target.value)}
+              onBlur={() => salvarValor("valor_estimado", valorEstimado)}
+              placeholder="0,00"
+              className="mt-1.5 w-full rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div>
+            <label htmlFor="detail-valor-fechado" className="block text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              Valor fechado (R$)
+            </label>
+            <input
+              id="detail-valor-fechado"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={valorFechado}
+              onChange={(e) => setValorFechado(e.target.value)}
+              onBlur={() => salvarValor("valor_fechado", valorFechado)}
+              placeholder="0,00"
+              className="mt-1.5 w-full rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <label htmlFor="detail-motivo-resultado" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
+          Motivo do resultado
+        </label>
+        <select
+          id="detail-motivo-resultado"
+          value={lead.motivo_resultado ?? ""}
+          onChange={(e) => {
+            const motivo = e.target.value || null;
+            onUpdate(lead.id, { motivo_resultado: motivo }, {
+              tipo: "resultado",
+              data: new Date().toISOString(),
+              texto: motivo ?? "Removido",
+            });
+          }}
+          className="mt-1.5 w-full rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
+        >
+          <option value="">Não definido</option>
+          {MOTIVOS_RESULTADO.map((motivo) => (
+            <option key={motivo} value={motivo}>{motivo}</option>
+          ))}
+        </select>
+
         <label htmlFor="detail-contato" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Último contato
         </label>
@@ -346,6 +431,25 @@ export default function LeadDetailModal({
           onChange={(e) => onUpdate(lead.id, { follow_up: e.target.value || null })}
           className="mt-1.5 w-full rounded-control border border-line bg-surface-2 px-3 py-2 text-sm text-ink focus:border-primary focus:outline-none"
         />
+        {lead.status !== "Cliente" && lead.status !== "Recusado" && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-[11px] text-ink-muted">Agendar:</span>
+            {[
+              { label: "Amanhã", dias: 1 },
+              { label: "Em 3 dias", dias: 3 },
+              { label: "Em 7 dias", dias: 7 },
+            ].map(({ label, dias }) => (
+              <button
+                key={dias}
+                type="button"
+                onClick={() => agendarFollowUp(dias)}
+                className="rounded-full border border-line px-2 py-0.5 text-[11px] font-medium text-ink-muted hover:border-primary hover:text-primary"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <label htmlFor="detail-obs" className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-muted">
           Observações

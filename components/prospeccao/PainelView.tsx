@@ -13,7 +13,7 @@ import {
   type DesempenhoGrupo,
 } from "@/lib/dashboard";
 
-function StatCard({ label, valor, sub, cor }: { label: string; valor: number; sub?: string; cor?: string }) {
+function StatCard({ label, valor, sub, cor }: { label: string; valor: number | string; sub?: string; cor?: string }) {
   return (
     <div className="rounded-card border border-line bg-surface p-4">
       <div className="text-2xl font-bold tabular-nums text-ink" style={cor ? { color: cor } : undefined}>
@@ -25,6 +25,10 @@ function StatCard({ label, valor, sub, cor }: { label: string; valor: number; su
       </div>
     </div>
   );
+}
+
+function moeda(valor: number): string {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
 function ListaDesempenho({ titulo, grupos }: { titulo: string; grupos: DesempenhoGrupo[] }) {
@@ -90,6 +94,8 @@ export default function PainelView({ leads }: { leads: Lead[] }) {
   const total = leads.length;
   const semSite = leads.filter((l) => !l.site).length;
   const enriquecidos = leads.filter((l) => l.instagram || l.email || l.rating != null).length;
+  const valorEstimado = leads.reduce((total, lead) => total + (lead.valor_estimado ?? 0), 0);
+  const valorFechado = leads.reduce((total, lead) => total + (lead.valor_fechado ?? 0), 0);
   const maxFaixa = Math.max(1, porFaixa.baixo, porFaixa.medio, porFaixa.alto);
   const maxFunil = Math.max(1, ...funil.map((e) => e.qtd));
   const maxSemanal = Math.max(1, ...semanal.flatMap((p) => [p.contatados, p.clientes]));
@@ -116,6 +122,11 @@ export default function PainelView({ leads }: { leads: Lead[] }) {
         <StatCard label="Enriquecidos" valor={enriquecidos} />
         <StatCard label="Score alto" valor={porFaixa.alto} cor="var(--color-score-alto)" />
         <StatCard label="Score médio" valor={porFaixa.medio} cor="var(--color-score-medio)" />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <StatCard label="Pipeline estimado" valor={moeda(valorEstimado)} cor="var(--color-primary)" />
+        <StatCard label="Receita fechada" valor={moeda(valorFechado)} cor={STATUS_COLORS.Cliente} />
       </div>
 
       <h3 className="mt-8 text-sm font-semibold uppercase tracking-wide text-ink-muted">

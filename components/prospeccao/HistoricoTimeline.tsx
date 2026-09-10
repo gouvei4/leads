@@ -6,6 +6,9 @@ const LABELS: Record<HistoricoEvento["tipo"], (e: HistoricoEvento) => string> = 
   mensagem_copiada: () => "Mensagem copiada",
   whatsapp_aberto: () => "WhatsApp aberto",
   nota: (e) => (e.texto ? `Observação: "${e.texto.slice(0, 80)}${e.texto.length > 80 ? "…" : ""}"` : "Observação atualizada"),
+  follow_up: (e) => (e.texto ? `Follow-up agendado para ${e.texto}` : "Follow-up atualizado"),
+  resultado: (e) => (e.texto ? `Motivo do resultado: ${e.texto}` : "Resultado atualizado"),
+  valor: (e) => (e.texto ? `Valor comercial: ${e.texto}` : "Valor comercial atualizado"),
 };
 
 function formatarData(iso: string): string {

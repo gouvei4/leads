@@ -17,6 +17,9 @@ const CAMPOS_PERMITIDOS = [
   "cnpj",
   "cnpj_info",
   "follow_up",
+  "motivo_resultado",
+  "valor_estimado",
+  "valor_fechado",
 ] as const;
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
