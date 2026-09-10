@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clienteDaRequisicao } from "@/lib/tenant";
 
 interface BrasilApiQsa {
   nome_socio?: string;
@@ -12,7 +13,11 @@ interface BrasilApiCnpj {
   qsa?: BrasilApiQsa[];
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ cnpj: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ cnpj: string }> }) {
+  if (!clienteDaRequisicao(request)) {
+    return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+  }
+
   const { cnpj } = await params;
   const limpo = cnpj.replace(/\D/g, "");
 

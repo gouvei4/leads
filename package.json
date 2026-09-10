@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "import-leads": "node scripts/import-leads.mjs",
-    "migrate-status": "node scripts/migrate-status.mjs"
+    "migrate-status": "node scripts/migrate-status.mjs",
+    "criar-admin": "node scripts/criar-admin.mjs",
+    "reset-dados": "node scripts/reset-dados.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
