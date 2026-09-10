@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "leads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dono", "order": "ASCENDING" },
+        { "fieldPath": "projeto_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "buscas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dono", "order": "ASCENDING" },
+        { "fieldPath": "projeto_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "projetos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dono", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

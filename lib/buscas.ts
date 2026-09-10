@@ -8,9 +8,11 @@ export async function getBuscas(
   dono: string,
   projetoId?: string
 ): Promise<Busca[]> {
-  const snap = await db.collection(BUSCAS_COLLECTION).where("dono", "==", dono).get();
-  let buscas = snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<Busca, "id">) }));
-  if (projetoId) buscas = buscas.filter((b) => b.projeto_id === projetoId);
+  // Evita ler o histórico de todos os projetos para exibir somente o atual.
+  let query = db.collection(BUSCAS_COLLECTION).where("dono", "==", dono);
+  if (projetoId) query = query.where("projeto_id", "==", projetoId);
+  const snap = await query.get();
+  const buscas = snap.docs.map((doc) => ({ id: doc.id, ...(doc.data() as Omit<Busca, "id">) }));
   buscas.sort((a, b) => b.criado_em.localeCompare(a.criado_em));
   return buscas;
 }

@@ -31,12 +31,17 @@ export async function getLeads(
   dono: string,
   projetoId?: string
 ): Promise<Lead[]> {
-  const snap = await db.collection(LEADS_COLLECTION).where("dono", "==", dono).get();
-  let leads = snap.docs.map((doc) => ({
+  // Quando há projeto selecionado, deixe o Firestore reduzir o conjunto antes
+  // de transferi-lo para a função. Antes todos os leads do workspace eram
+  // lidos e o filtro de projeto acontecia em memória.
+  let query = db.collection(LEADS_COLLECTION).where("dono", "==", dono);
+  if (projetoId) query = query.where("projeto_id", "==", projetoId);
+
+  const snap = await query.get();
+  const leads = snap.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<Lead, "id">),
   }));
-  if (projetoId) leads = leads.filter((l) => l.projeto_id === projetoId);
   leads.sort((a, b) => {
     const porCidade = a.cidade.localeCompare(b.cidade, "pt-BR");
     if (porCidade !== 0) return porCidade;
