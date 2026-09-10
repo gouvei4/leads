@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getDb } from "@/lib/firebaseAdmin";
 import { LEADS_COLLECTION } from "@/lib/leads";
 import { bloquearTelefone } from "@/lib/blacklist";
+import { clienteDaRequisicao } from "@/lib/tenant";
 import type { HistoricoEvento } from "@/lib/types";
 
 const CAMPOS_PERMITIDOS = [
@@ -19,6 +20,9 @@ const CAMPOS_PERMITIDOS = [
 ] as const;
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ ok: false, erro: "Não autenticado." }, { status: 401 });
+
   const { id } = await params;
   try {
     const data = await request.json();
@@ -36,13 +40,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const db = getDb();
     const ref = db.collection(LEADS_COLLECTION).doc(id);
+    const atual = await ref.get();
+    if (!atual.exists || atual.data()?.dono !== dono) {
+      return NextResponse.json({ ok: false, erro: "Lead não encontrado." }, { status: 404 });
+    }
+
     await ref.set(updates, { merge: true });
 
     // lead marcado como Recusado entra na blacklist automaticamente, pra não
-    // reaparecer em buscas futuras (em qualquer projeto)
+    // reaparecer em buscas futuras (dentro do workspace deste cliente)
     if (data.status === "Recusado") {
-      const snap = await ref.get();
-      await bloquearTelefone(db, String(snap.data()?.telefone ?? ""), "Lead marcado como Recusado");
+      await bloquearTelefone(db, dono, String(atual.data()?.telefone ?? ""), "Lead marcado como Recusado");
     }
 
     return NextResponse.json({ ok: true });
@@ -51,11 +59,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ ok: false, erro: "Não autenticado." }, { status: 401 });
+
   const { id } = await params;
   try {
     const db = getDb();
-    await db.collection(LEADS_COLLECTION).doc(id).delete();
+    const ref = db.collection(LEADS_COLLECTION).doc(id);
+    const atual = await ref.get();
+    if (!atual.exists || atual.data()?.dono !== dono) {
+      return NextResponse.json({ ok: false, erro: "Lead não encontrado." }, { status: 404 });
+    }
+    await ref.delete();
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ ok: false, erro: (err as Error).message }, { status: 500 });

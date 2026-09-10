@@ -125,3 +125,28 @@ export interface Busca {
   sem_site: number;
   novos: number;
 }
+
+export type ClienteStatus = "ativo" | "expirado" | "revogado";
+
+/**
+ * Um cliente = um token = um workspace isolado. Todo lead/projeto/template/
+ * busca/blacklist/perfil dele tem `dono` igual ao `id` daqui.
+ */
+export interface Cliente {
+  id: string;
+  nome: string;
+  email: string;
+  whatsapp: string;
+  empresa: string;
+  observacoes: string;
+  /** primeiros 6 chars do token puro — só pra identificar na lista do admin */
+  token_prefixo: string;
+  criado_em: string;
+  expira_em: string;
+  revogado_em: string | null;
+  /** preenchido pela limpeza automática quando os dados são apagados */
+  dados_apagados_em: string | null;
+  ultimo_acesso_em: string | null;
+  /** derivado no servidor a partir de expira_em / revogado_em */
+  status: ClienteStatus;
+}

@@ -1,32 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verificar, COOKIE_SESSAO, type SessaoCliente } from "@/lib/session";
+import { clienteAtivo } from "@/lib/tenant";
 
 // Não intercepta assets estáticos do Next nem o ícone.
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"],
 };
 
-/**
- * Trava de acesso opcional via HTTP Basic. Ativa só quando APP_PASSWORD está
- * definido (na Vercel, p.ex.) — sem ela, o app fica aberto pra uso local.
- * Qualquer nome de usuário serve; o que vale é a senha.
- */
-export function proxy(req: NextRequest) {
-  const senha = process.env.APP_PASSWORD;
-  if (!senha) return NextResponse.next();
+/** Rotas que não exigem sessão de cliente (têm sua própria proteção, ou nenhuma). */
+function ehPublica(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/api/auth/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/api/admin/") || // protegido pelo cookie de admin no handler
+    pathname.startsWith("/api/cron/") // protegido pelo CRON_SECRET no handler
+  );
+}
 
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Basic ")) {
-    try {
-      const decoded = atob(auth.slice(6));
-      const pass = decoded.slice(decoded.indexOf(":") + 1);
-      if (pass === senha) return NextResponse.next();
-    } catch {
-      // header malformado — cai no 401 abaixo
+/**
+ * Controle de acesso central. Roda no runtime Node.js (Next 16), então usa o
+ * firebase-admin direto pra confirmar que o token/cliente ainda está ativo.
+ */
+export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  if (ehPublica(pathname)) return NextResponse.next();
+
+  const ehApi = pathname.startsWith("/api/");
+
+  if (!process.env.AUTH_SECRET) {
+    if (ehApi) {
+      return NextResponse.json(
+        { erro: "AUTH_SECRET não configurado no servidor." },
+        { status: 503 }
+      );
     }
+    return NextResponse.redirect(new URL("/login?erro=config", req.url));
   }
 
-  return new NextResponse("Autenticação necessária.", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Prospector", charset="UTF-8"' },
-  });
+  const sessao = verificar<SessaoCliente>(req.cookies.get(COOKIE_SESSAO)?.value);
+  const cid = sessao && sessao.tipo === "cliente" ? sessao.cid : null;
+
+  const liberado = cid ? await clienteAtivo(cid) : false;
+  if (liberado) return NextResponse.next();
+
+  if (ehApi) {
+    return NextResponse.json({ erro: "Sessão inválida ou expirada." }, { status: 401 });
+  }
+  const destino = new URL("/login", req.url);
+  if (cid) destino.searchParams.set("erro", "expirado");
+  return NextResponse.redirect(destino);
 }

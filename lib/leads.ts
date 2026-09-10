@@ -14,27 +14,29 @@ export const LEADS_COLLECTION = "leads";
  * Sem place_id (imports de planilha antiga), usa nome+endereço.
  */
 export function leadDocId(
+  dono: string,
   projetoId: string,
   nome: string,
   endereco: string,
   placeId?: string
 ): string {
   const key = placeId
-    ? `${projetoId}|place:${placeId}`
-    : `${projetoId}|${nome.trim().toLowerCase()}|${endereco.trim().toLowerCase()}`;
+    ? `${dono}|${projetoId}|place:${placeId}`
+    : `${dono}|${projetoId}|${nome.trim().toLowerCase()}|${endereco.trim().toLowerCase()}`;
   return createHash("sha1").update(key).digest("hex");
 }
 
-export async function getLeads(db: Firestore, projetoId?: string): Promise<Lead[]> {
-  const query = projetoId
-    ? db.collection(LEADS_COLLECTION).where("projeto_id", "==", projetoId)
-    : db.collection(LEADS_COLLECTION);
-
-  const snap = await query.get();
-  const leads = snap.docs.map((doc) => ({
+export async function getLeads(
+  db: Firestore,
+  dono: string,
+  projetoId?: string
+): Promise<Lead[]> {
+  const snap = await db.collection(LEADS_COLLECTION).where("dono", "==", dono).get();
+  let leads = snap.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<Lead, "id">),
   }));
+  if (projetoId) leads = leads.filter((l) => l.projeto_id === projetoId);
   leads.sort((a, b) => {
     const porCidade = a.cidade.localeCompare(b.cidade, "pt-BR");
     if (porCidade !== 0) return porCidade;

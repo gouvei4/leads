@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
 import { getTemplates, TEMPLATES_COLLECTION } from "@/lib/templates";
+import { clienteDaRequisicao } from "@/lib/tenant";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+
   try {
     const db = getDb();
-    const templates = await getTemplates(db);
+    const templates = await getTemplates(db, dono);
     return NextResponse.json({ templates });
   } catch (err) {
     return NextResponse.json({ erro: (err as Error).message }, { status: 500 });
@@ -13,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+
   try {
     const data = await request.json();
     const nome = String(data.nome ?? "").trim();
@@ -26,7 +33,13 @@ export async function POST(request: NextRequest) {
 
     const db = getDb();
     const ref = db.collection(TEMPLATES_COLLECTION).doc();
-    const template = { nome, nicho_padrao: nichoPadrao, variacoes, criado_em: new Date().toISOString() };
+    const template = {
+      nome,
+      nicho_padrao: nichoPadrao,
+      variacoes,
+      dono,
+      criado_em: new Date().toISOString(),
+    };
     await ref.set(template);
 
     return NextResponse.json({ id: ref.id, ...template });

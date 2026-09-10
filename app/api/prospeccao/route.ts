@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
 import { LEADS_COLLECTION, leadDocId } from "@/lib/leads";
+import { PROJETOS_COLLECTION } from "@/lib/projetos";
 import { mapWithConcurrency } from "@/lib/concurrency";
 import { placeDetailsLocation, searchByRadius } from "@/lib/places";
 import { checarSite } from "@/lib/enrich";
@@ -10,6 +11,7 @@ import { gerarMensagemParaLead } from "@/lib/mensagemTemplate";
 import { getTelefonesBloqueados } from "@/lib/blacklist";
 import { commitEmLotes, type EscritaSet } from "@/lib/firestoreBatch";
 import { BUSCAS_COLLECTION } from "@/lib/buscas";
+import { clienteDaRequisicao } from "@/lib/tenant";
 import { normalizarTelefoneBr } from "@/lib/whatsapp";
 import type { SiteQualidade } from "@/lib/types";
 
@@ -17,6 +19,11 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) {
+    return NextResponse.json({ ok: false, erro: "Não autenticado." }, { status: 401 });
+  }
+
   const apiKey = process.env.GOOGLE_PLACES_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -57,10 +64,17 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
+
+  // valida que o projeto pertence a este cliente
+  const projetoSnap = await db.collection(PROJETOS_COLLECTION).doc(projetoId).get();
+  if (!projetoSnap.exists || projetoSnap.data()?.dono !== dono) {
+    return NextResponse.json({ ok: false, erro: "Projeto não encontrado." }, { status: 404 });
+  }
+
   const [templates, perfil, telefonesBloqueados] = await Promise.all([
-    getTemplates(db),
-    getPerfil(db),
-    getTelefonesBloqueados(db),
+    getTemplates(db, dono),
+    getPerfil(db, dono),
+    getTelefonesBloqueados(db, dono),
   ]);
 
   let resultadosBrutos;
@@ -106,7 +120,7 @@ export async function POST(request: NextRequest) {
   const buscaRef = db.collection(BUSCAS_COLLECTION).doc();
 
   const refs = resultados.map((r) =>
-    db.collection(LEADS_COLLECTION).doc(leadDocId(projetoId, r.nome, r.endereco, r.place_id))
+    db.collection(LEADS_COLLECTION).doc(leadDocId(dono, projetoId, r.nome, r.endereco, r.place_id))
   );
   const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
 
@@ -136,6 +150,7 @@ export async function POST(request: NextRequest) {
         perfil
       );
       const dados = {
+        dono,
         place_id: r.place_id,
         nome: r.nome,
         endereco: r.endereco,
@@ -176,6 +191,7 @@ export async function POST(request: NextRequest) {
   escritas.push({
     ref: buscaRef,
     data: {
+      dono,
       projeto_id: projetoId,
       nicho,
       localizacao_texto: localizacaoTexto,

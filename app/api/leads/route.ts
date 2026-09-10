@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
 import { getLeads } from "@/lib/leads";
+import { clienteDaRequisicao } from "@/lib/tenant";
 import { STATUS_OPTIONS } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+
   try {
     const db = getDb();
     const { searchParams } = new URL(request.url);
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ leads: [], cidades: [], termos: [], status_options: STATUS_OPTIONS });
     }
 
-    const doProjeto = await getLeads(db, projeto);
+    const doProjeto = await getLeads(db, dono, projeto);
 
     const leads = doProjeto.filter((l) => {
       if (cidade && l.cidade !== cidade) return false;

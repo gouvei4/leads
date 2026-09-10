@@ -3,8 +3,8 @@ import type { Projeto } from "./types";
 
 export const PROJETOS_COLLECTION = "projetos";
 
-export async function getAllProjetos(db: Firestore): Promise<Projeto[]> {
-  const snap = await db.collection(PROJETOS_COLLECTION).get();
+export async function getAllProjetos(db: Firestore, dono: string): Promise<Projeto[]> {
+  const snap = await db.collection(PROJETOS_COLLECTION).where("dono", "==", dono).get();
   const projetos = snap.docs.map((doc) => ({
     id: doc.id,
     ...(doc.data() as Omit<Projeto, "id">),

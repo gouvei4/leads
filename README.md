@@ -2,10 +2,16 @@
 
 Sistema para buscar empresas (Google Places), salvar no Firestore e
 gerenciar o status de cada uma (Novo, Contatado, Respondeu, Negociando,
-Cliente, Recusado). Não tem login próprio — é feito para uso pessoal
-(dá pra travar por senha, veja `APP_PASSWORD` abaixo).
+Cliente, Recusado).
 
-Stack: **Next.js (App Router + TypeScript)**, **Tailwind CSS v4**,
+O acesso é **por token**: você (admin) gera um token no painel `/admin`,
+envia pra pessoa, e ela entra em `/login` com esse token. Cada token é um
+**workspace isolado** — o cliente só vê os próprios leads. O token vale
+**30 dias**; quando expira, os dados de trabalho daquele cliente são
+apagados automaticamente (o cadastro dele fica no painel, marcado como
+"Expirado").
+
+Stack: **Next.js 16 (App Router + TypeScript)**, **Tailwind CSS v4**,
 **Firebase Firestore** (via Admin SDK, só no servidor), **Leaflet** pro
 mapa, deploy na **Vercel**.
 
@@ -41,44 +47,97 @@ cp .env.local.example .env.local
      três variáveis (mantenha as quebras de linha da chave como `\n`,
      tudo em uma linha só, entre aspas).
 
-- **`APP_PASSWORD`** (opcional, mas recomendado em produção): se
-  preenchido, o site inteiro — incluindo as rotas `/api` — passa a pedir
-  senha (HTTP Basic; qualquer usuário, essa senha). Vazio = sem trava,
-  ok pra rodar só local. Sem isso, qualquer um com a URL da Vercel lê e
-  escreve seus dados e gasta sua cota do Google.
+- **`AUTH_SECRET`** (obrigatório): segredo pra assinar os cookies de
+  sessão. Sem ele o app fica travado (todo acesso cai em `/login` com
+  erro de configuração). Gere um:
+
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+
+- **`CRON_SECRET`** (obrigatório em produção): protege o endpoint de
+  limpeza automática. O Vercel Cron manda `Authorization: Bearer
+  <CRON_SECRET>` nas chamadas. Gere igual ao `AUTH_SECRET`.
 
 Essas variáveis nunca devem ser commitadas — o `.env.local` já está no
-`.gitignore`. Na Vercel, configure as mesmas variáveis em
-**Project Settings → Environment Variables**.
+`.gitignore`. Na Vercel, configure todas em **Project Settings →
+Environment Variables** (inclusive `AUTH_SECRET` e `CRON_SECRET`).
 
-A chave da Google Places fica só no arquivo de ambiente (não é editável
-pela interface); depois de trocar, reinicie o servidor.
+## 3. Criar o primeiro admin
 
-## 3. Rodar localmente
+O login do painel `/admin` é um usuário na coleção `admins` do Firestore.
+Crie o primeiro (ou troque a senha de um existente):
+
+```bash
+npm run criar-admin -- voce@exemplo.com "uma-senha-forte"
+```
+
+## 4. Rodar localmente
 
 ```bash
 npm run dev
 ```
 
-Abra **http://localhost:3000**.
+Abra **http://localhost:3000**. Sem sessão, você cai em `/login`.
+Vá em **/admin**, entre com o admin criado, gere um token e use esse
+token no `/login`.
 
-## 4. Deploy (Vercel)
+## 5. Deploy (Vercel)
 
 ```bash
 npx vercel
 ```
 
 Ou conecte o repositório pelo painel da Vercel. Configure as variáveis de
-ambiente no projeto da Vercel (`GOOGLE_PLACES_KEY`, `FIREBASE_PROJECT_ID`,
-`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` e, de preferência,
-`APP_PASSWORD`).
+ambiente (`GOOGLE_PLACES_KEY`, `FIREBASE_*`, `AUTH_SECRET`, `CRON_SECRET`).
+O `vercel.json` já agenda a limpeza automática (`/api/cron/limpar-expirados`,
+1x/dia às 4h UTC).
 
 > A busca enriquece cada resultado (baixa a home do site pra classificar
 > qualidade e achar Instagram/e-mail), então tem um teto de tempo. Raios
 > muito grandes com muitos resultados podem passar do limite da função
 > serverless — se acontecer, reduza o raio.
 
-## 5. Usar
+## 6. Acesso por token — como funciona
+
+**Gerar** (painel `/admin`): preencha nome do cliente (obrigatório),
+e-mail, WhatsApp, empresa e observações internas. O sistema cria um token
+único, calcula a expiração (criado + 30 dias) e mostra o token puro
+**uma única vez** — copie e envie pra pessoa.
+
+**Entrar** (`/login`): a pessoa cola o token. O servidor confere se ele
+existe, não foi revogado e está dentro dos 30 dias. Se estiver ok, grava
+um cookie de sessão assinado (HttpOnly) que dura até a data de expiração
+do token — a pessoa não redigita o token a cada refresh.
+
+**Validação contínua**: o `proxy.ts` (roda no servidor, antes de toda
+página e toda rota `/api`) confere a assinatura do cookie **e** consulta
+o Firestore pra ver se o token continua ativo (cache de ~60s). Revogar ou
+expirar passa a valer em no máximo 1 minuto, mesmo pra quem já está
+logado. Nada é validado só no frontend.
+
+**Segurança do token**: no banco fica só o SHA-256 do token (nunca o
+valor puro) + os 6 primeiros caracteres, pra você identificar na lista.
+
+**Gerenciar** (`/admin`): a tabela mostra cada acesso com data de
+criação, expiração, status (Ativo / Expirado / Revogado) e último acesso.
+
+- **Revogar**: bloqueia o acesso na hora; os dados ficam até o token
+  expirar (aí a limpeza automática apaga).
+- **Excluir**: bloqueia o acesso **e** apaga todos os dados do cliente
+  imediatamente, mais o cadastro dele.
+
+**Limpeza automática**: `/api/cron/limpar-expirados` (Vercel Cron, 1x/dia)
+apaga `leads`, `projetos`, `templates`, `buscas`, `blacklist` e o perfil
+de todo cliente que passou dos 30 dias, e marca o cadastro com
+`dados_apagados_em`. Pra rodar na mão:
+
+```bash
+curl -H "Authorization: Bearer <CRON_SECRET>" \
+  https://SEU-APP.vercel.app/api/cron/limpar-expirados
+```
+
+## 7. Usar
 
 A tela é única: uma barra fina de ícones à esquerda troca entre
 **Prospecção**, **Templates**, **Blacklist** e **Configurações**.
@@ -107,29 +166,31 @@ A tela é única: uma barra fina de ícones à esquerda troca entre
 
 ## Onde ficam os dados
 
-Tudo no **Firestore** (coleções `leads`, `projetos`, `templates`,
-`buscas`, `blacklist`, `config`). Backup é responsabilidade do Firebase
-— ou exporte pra `.xlsx` de vez em quando.
+Tudo no **Firestore**:
 
-## Importar planilhas antigas (CSV/XLSX)
+- Por cliente (têm o campo `dono` = id do doc em `clientes`): `leads`,
+  `projetos`, `templates`, `buscas`, `blacklist`; o perfil fica em
+  `perfis/{donoId}`.
+- Controle de acesso: `clientes` (um por token), `admins` (login do
+  painel).
 
-Pra trazer listas antigas (colunas como
-`nome,telefone,endereco,site,link_maps,busca` ou o export
-`Nome,Telefone,Cidade,Endereco,Site,Link Maps,Termo da
-Busca,Status,Ultimo Contato,Observacoes`):
+Backup é responsabilidade do Firebase — ou exporte pra `.xlsx` de vez em
+quando.
 
-```bash
-npm run import-leads -- leads_cacambas.csv "Cacambas"
-npm run import-leads -- lista.xlsx "Nome do projeto"
-```
+## Scripts
 
-O segundo argumento é o projeto de destino — criado automaticamente se
-não existir. Não duplica quem já existe no mesmo projeto (nome +
-endereço); se a planilha trouxer Status/Observações/Último contato
-preenchidos pra alguém que já existe, esses campos são atualizados.
+- `npm run criar-admin -- email senha` — cria/atualiza um admin.
+- `npm run reset-dados -- --apply` — apaga **todos** os dados de trabalho
+  (`leads`, `projetos`, `templates`, `buscas`, `blacklist`, `perfis`).
+  Não toca em `clientes` nem `admins`. Roda em dry-run sem `--apply`.
+- `npm run import-leads` / `npm run migrate-status` — **anteriores ao
+  modelo multi-tenant**: não preenchem `dono`, então os leads importados
+  não aparecem em nenhum workspace. Precisam de ajuste antes de usar.
 
 ## Dúvidas comuns
 
+- **Cai sempre em `/login` com "sistema não configurado"**: falta
+  `AUTH_SECRET` nas variáveis de ambiente.
 - **Erro 403 ao buscar**: a Places API (New) não tá ativada no projeto
   do Google Cloud, ou a chave tá restrita à API errada.
 - **Erro sobre billing**: faturamento não ativado no Google Cloud
@@ -137,5 +198,3 @@ preenchidos pra alguém que já existe, esses campos são atualizados.
   normal de prospecção).
 - **"Firebase Admin não configurado"**: falta preencher `FIREBASE_*`
   no `.env.local` (ou nas variáveis de ambiente da Vercel).
-- **A versão antiga (Flask + SQLite)** foi removida do repositório; se
-  precisar, está no histórico do git antes deste commit.

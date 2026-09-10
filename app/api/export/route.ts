@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
 import { getLeads } from "@/lib/leads";
 import { calcularScore } from "@/lib/score";
+import { clienteDaRequisicao } from "@/lib/tenant";
 import type { Lead } from "@/lib/types";
 
 const COLUNAS = [
@@ -53,6 +54,9 @@ function montarCsv(leads: Lead[]): string {
 }
 
 export async function GET(request: NextRequest) {
+  const dono = clienteDaRequisicao(request);
+  if (!dono) return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+
   try {
     const db = getDb();
     const { searchParams } = new URL(request.url);
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
     if (!projeto) {
       return NextResponse.json({ erro: "Selecione um projeto antes de exportar." }, { status: 400 });
     }
-    const leads = await getLeads(db, projeto);
+    const leads = await getLeads(db, dono, projeto);
     const dataFormatada = new Date().toISOString().slice(0, 10).replace(/-/g, "");
 
     if (formato === "csv") {
