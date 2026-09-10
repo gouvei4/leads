@@ -1,11 +1,12 @@
 /**
  * Importa leads de um arquivo CSV ou XLSX (formato antigo do app Flask)
- * para o Firestore, associando tudo a um projeto (cria o projeto se nao
- * existir ainda). Nao duplica quem ja existir (mesmo projeto + nome + endereco).
+ * para o Firestore, associando tudo a um cliente e a um projeto (cria o
+ * projeto se nao existir ainda). Nao duplica quem ja existir (mesmo cliente
+ * + projeto + nome + endereco).
  *
  * Uso:
- *   node scripts/import-leads.mjs leads_cacambas.csv "Cacambas"
- *   node scripts/import-leads.mjs leads_20260707.xlsx "Cacambas"
+ *   node scripts/import-leads.mjs leads_cacambas.csv CLIENTE_ID "Cacambas"
+ *   node scripts/import-leads.mjs leads_20260707.xlsx CLIENTE_ID "Cacambas"
  */
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -55,17 +56,22 @@ function normalizar(texto) {
     .replace(/[̀-ͯ]/g, "");
 }
 
-function leadDocId(projetoId, nome, endereco) {
-  const key = `${projetoId}|${nome.trim().toLowerCase()}|${endereco.trim().toLowerCase()}`;
+function leadDocId(dono, projetoId, nome, endereco) {
+  const key = `${dono}|${projetoId}|${nome.trim().toLowerCase()}|${endereco.trim().toLowerCase()}`;
   return createHash("sha1").update(key).digest("hex");
 }
 
-async function acharOuCriarProjeto(nomeProjeto) {
-  const snap = await db.collection("projetos").where("nome", "==", nomeProjeto).limit(1).get();
+async function acharOuCriarProjeto(dono, nomeProjeto) {
+  const snap = await db
+    .collection("projetos")
+    .where("dono", "==", dono)
+    .where("nome", "==", nomeProjeto)
+    .limit(1)
+    .get();
   if (!snap.empty) return snap.docs[0].id;
 
   const ref = db.collection("projetos").doc();
-  await ref.set({ nome: nomeProjeto, criado_em: new Date().toISOString() });
+  await ref.set({ nome: nomeProjeto, dono, criado_em: new Date().toISOString() });
   return ref.id;
 }
 
@@ -126,12 +132,18 @@ function mapearLinha(linhaBruta, colunas) {
 
 async function main() {
   const caminho = process.argv[2];
-  const nomeProjeto = process.argv[3]?.trim();
-  if (!caminho || !nomeProjeto) {
-    console.error('Uso: node scripts/import-leads.mjs caminho/do/arquivo.csv (ou .xlsx) "Nome do Projeto"');
+  const dono = process.argv[3]?.trim();
+  const nomeProjeto = process.argv[4]?.trim();
+  if (!caminho || !dono || !nomeProjeto) {
+    console.error('Uso: node scripts/import-leads.mjs arquivo.csv (ou .xlsx) CLIENTE_ID "Nome do Projeto"');
     process.exit(1);
   }
-  const projetoId = await acharOuCriarProjeto(nomeProjeto);
+  const cliente = await db.collection("clientes").doc(dono).get();
+  if (!cliente.exists) {
+    console.error(`Cliente "${dono}" nao encontrado na colecao clientes.`);
+    process.exit(1);
+  }
+  const projetoId = await acharOuCriarProjeto(dono, nomeProjeto);
 
   const ext = caminho.split(".").pop().toLowerCase();
   let linhas, colunas;
@@ -163,11 +175,13 @@ async function main() {
     }
     const endereco = item.endereco ?? "";
 
-    const ref = db.collection("leads").doc(leadDocId(projetoId, nome, endereco));
+    const ref = db.collection("leads").doc(leadDocId(dono, projetoId, nome, endereco));
     const snap = await ref.get();
 
     if (!snap.exists) {
+      const criadoEm = new Date().toISOString();
       await ref.set({
+        dono,
         projeto_id: projetoId,
         nome,
         telefone: item.telefone ?? "",
@@ -179,7 +193,8 @@ async function main() {
         status: item.status || "Novo",
         ultimo_contato: item.ultimo_contato ?? "",
         observacoes: item.observacoes ?? "",
-        criado_em: new Date().toISOString(),
+        criado_em: criadoEm,
+        historico: [{ tipo: "criacao", data: criadoEm }],
       });
       novos++;
       continue;
@@ -199,7 +214,7 @@ async function main() {
   }
 
   console.log(
-    `Projeto "${nomeProjeto}" (${projetoId})\n` +
+    `Cliente ${dono} | Projeto "${nomeProjeto}" (${projetoId})\n` +
       `Novos: ${novos} | Atualizados (ja existiam, campos CRM aplicados): ${atualizados} | ` +
       `Ja existiam (sem mudanca): ${duplicados} | Ignorados (sem nome): ${ignorados}`
   );

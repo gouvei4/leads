@@ -93,6 +93,13 @@ ambiente (`GOOGLE_PLACES_KEY`, `FIREBASE_*`, `AUTH_SECRET`, `CRON_SECRET`).
 O `vercel.json` já agenda a limpeza automática (`/api/cron/limpar-expirados`,
 1x/dia às 4h UTC).
 
+As consultas por projeto usam os índices descritos em `firestore.indexes.json`.
+Antes do primeiro deploy desta versão, publique-os uma vez no projeto Firebase:
+
+```bash
+npx firebase-tools deploy --only firestore:indexes
+```
+
 > A busca enriquece cada resultado (baixa a home do site pra classificar
 > qualidade e achar Instagram/e-mail), então tem um teto de tempo. Raios
 > muito grandes com muitos resultados podem passar do limite da função
@@ -183,9 +190,11 @@ quando.
 - `npm run reset-dados -- --apply` — apaga **todos** os dados de trabalho
   (`leads`, `projetos`, `templates`, `buscas`, `blacklist`, `perfis`).
   Não toca em `clientes` nem `admins`. Roda em dry-run sem `--apply`.
-- `npm run import-leads` / `npm run migrate-status` — **anteriores ao
-  modelo multi-tenant**: não preenchem `dono`, então os leads importados
-  não aparecem em nenhum workspace. Precisam de ajuste antes de usar.
+- `npm run import-leads -- arquivo.csv CLIENTE_ID "Nome do Projeto"` —
+  importa CSV/XLSX para o workspace de um cliente. O `CLIENTE_ID` é o ID do
+  documento na coleção `clientes`; o projeto é criado caso ainda não exista.
+- `npm run migrate-status` — migra status de dados legados em modo dry-run;
+  acrescente `--apply` para efetivar.
 
 ## Dúvidas comuns
 

@@ -39,7 +39,10 @@ function linhaDoLead(l: Lead) {
 }
 
 function escaparCsv(valor: unknown): string {
-  const texto = String(valor ?? "");
+  let texto = String(valor ?? "");
+  // Excel/Sheets interpretam estes prefixos como fórmula. O apóstrofo mantém
+  // o valor como texto sem alterar o conteúdo exibido para quem recebe o CSV.
+  if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
   if (/[",\n]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
   return texto;
 }
