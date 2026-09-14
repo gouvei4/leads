@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { verificar, COOKIE_SESSAO, type SessaoCliente } from "@/lib/session";
 import { clienteAtivo } from "@/lib/tenant";
 
-// Não intercepta assets estáticos do Next nem o ícone.
+// Não intercepta assets estáticos do Next nem os arquivos públicos da landing page.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|background.png).*)"],
 };
 
 /** Rotas que não exigem sessão de cliente (têm sua própria proteção, ou nenhuma). */
 function ehPublica(pathname: string): boolean {
   return (
+    pathname === "/" ||
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
     pathname === "/admin" ||

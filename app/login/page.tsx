@@ -37,7 +37,7 @@ export default function LoginPage() {
         setErro(d.erro || "Não foi possível entrar. Confira o token e tente de novo.");
         return;
       }
-      window.location.href = "/";
+      window.location.href = "/painel";
     } catch {
       setErro("Erro de conexão. Tente novamente em instantes.");
     } finally {

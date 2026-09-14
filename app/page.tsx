@@ -1,10 +1,5 @@
-import AppShell from "@/components/AppShell";
-import AuthGate from "@/components/AuthGate";
+import LandingPage from "@/components/LandingPage";
 
 export default function Home() {
-  return (
-    <AuthGate>
-      <AppShell />
-    </AuthGate>
-  );
+  return <LandingPage />;
 }
